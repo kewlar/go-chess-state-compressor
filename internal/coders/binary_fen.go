@@ -46,9 +46,9 @@ func (c *BinaryFenCoder) Name() string {
 }
 
 func (c *BinaryFenCoder) FromFen(fen string) *bitfield.BitField {
-	parts := strings.Fields(fen)
+	// PARSE FEN
 
-	bf := &bitfield.BitField{}
+	parts := strings.Fields(fen)
 
 	// Piece placement
 	occupancy := uint64(0)
@@ -78,18 +78,13 @@ func (c *BinaryFenCoder) FromFen(fen string) *bitfield.BitField {
 		cell++
 	}
 
-	bf.WriteInt(occupancy, 64)
-	bf.WriteInt(uint64(color), len(pieces))
-	for _, piece := range pieces {
-		bf.WriteInt(uint64(piece), 3)
-	}
-
 	// Side to move.
-	bf.WriteBool(parts[1] == "w")
+	whiteToMove := parts[1] == "w"
 
 	// Castling availability.
+	castling := []bool{}
 	for _, option := range c.castlingOptions {
-		bf.WriteBool(strings.ContainsRune(parts[2], option))
+		castling = append(castling, strings.ContainsRune(parts[2], option))
 	}
 
 	// En passant square.
@@ -99,14 +94,39 @@ func (c *BinaryFenCoder) FromFen(fen string) *bitfield.BitField {
 		rank := parts[3][1] - '1'
 		enPassant = (7-rank)*8 + file
 	}
-	bf.WriteInt(uint64(enPassant), 7)
 
 	// Halfmove clock.
 	halfMoves, _ := strconv.Atoi(parts[4])
-	bf.WriteInt(uint64(halfMoves), 8)
 
 	// Fullmove number.
 	fullMoves, _ := strconv.Atoi(parts[5])
+
+	// GENERATE BITS
+
+	bf := &bitfield.BitField{}
+
+	// Piece placement.
+	bf.WriteInt(occupancy, 64)
+	bf.WriteInt(uint64(color), len(pieces))
+	for _, piece := range pieces {
+		bf.WriteInt(uint64(piece), 3)
+	}
+
+	// Side to move.
+	bf.WriteBool(whiteToMove)
+
+	// Castling availability.
+	for idx := range c.castlingOptions {
+		bf.WriteBool(castling[idx])
+	}
+
+	// En passant square.
+	bf.WriteInt(uint64(enPassant), 7)
+
+	// Halfmove clock.
+	bf.WriteInt(uint64(halfMoves), 8)
+
+	// Fullmove number.
 	bf.WriteInt(uint64(fullMoves), 14)
 
 	return bf
@@ -149,6 +169,8 @@ func (c *BinaryFenCoder) ToFen(data *bitfield.BitField) string {
 
 	// Fullmove number.
 	fullMoves := data.ReadInt(14)
+
+	// GENERATE FEN
 
 	fen := strings.Builder{}
 
