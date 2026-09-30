@@ -8,32 +8,21 @@ import (
 )
 
 type BinaryFenCoder struct {
-	pieceCodes      map[rune]byte
+	pieceCodes      [256]byte
 	codePieces      []rune
 	castlingOptions []rune
 }
 
-var v1PieceCodes = map[rune]byte{
-	'p': 0,
-	'k': 1,
-	'q': 2,
-	'r': 3,
-	'b': 4,
-	'n': 5,
-}
-
-var v1CodePieces = []rune{
-	'p',
-	'k',
-	'q',
-	'r',
-	'b',
-	'n',
-}
-
-var v1CastlingOptions = []rune{'K', 'Q', 'k', 'q'}
+var (
+	v1CodePieces      = []rune{'p', 'k', 'q', 'r', 'b', 'n'}
+	v1CastlingOptions = []rune{'K', 'Q', 'k', 'q'}
+)
 
 func NewBinaryFenCoder() *BinaryFenCoder {
+	v1PieceCodes := [256]byte{}
+	for code, piece := range v1CodePieces {
+		v1PieceCodes[byte(piece)] = byte(code)
+	}
 	return &BinaryFenCoder{
 		pieceCodes:      v1PieceCodes,
 		codePieces:      v1CodePieces,
