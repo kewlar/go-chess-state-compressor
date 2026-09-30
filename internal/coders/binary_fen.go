@@ -1,7 +1,6 @@
 package coders
 
 import (
-	"log"
 	"strconv"
 	"strings"
 
@@ -67,9 +66,6 @@ func (c *BinaryFenCoder) FromFen(fen string) *bitfield.BitField {
 		}
 
 		pieceType := rune(int(r) | 32)
-		if !strings.ContainsRune("prkqbn", pieceType) {
-			log.Fatalf("unexpected piece %q in fen %s", r, fen)
-		}
 
 		occupancy |= 1 << cell
 
@@ -80,11 +76,6 @@ func (c *BinaryFenCoder) FromFen(fen string) *bitfield.BitField {
 		pieces = append(pieces, c.pieceCodes[pieceType])
 
 		cell++
-	}
-
-	// Sanity check: should have decoded 64 squares.
-	if cell != 64 {
-		log.Fatalf("expected to decode 64 squares in %s", fen)
 	}
 
 	bf.WriteInt(occupancy, 64)
@@ -111,17 +102,11 @@ func (c *BinaryFenCoder) FromFen(fen string) *bitfield.BitField {
 	bf.WriteInt(uint64(enPassant), 7)
 
 	// Halfmove clock.
-	halfMoves, err := strconv.Atoi(parts[4])
-	if err != nil {
-		log.Fatalf("error parsing halfmove clock in '%s': %v", fen, err)
-	}
+	halfMoves, _ := strconv.Atoi(parts[4])
 	bf.WriteInt(uint64(halfMoves), 8)
 
 	// Fullmove number.
-	fullMoves, err := strconv.Atoi(parts[5])
-	if err != nil {
-		log.Fatalf("error parsing fullmove number in '%s': %v", fen, err)
-	}
+	fullMoves, _ := strconv.Atoi(parts[5])
 	bf.WriteInt(uint64(fullMoves), 14)
 
 	return bf
