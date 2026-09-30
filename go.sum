@@ -1,0 +1,4 @@
+github.com/corentings/chess/v2 v2.6.0 h1:xFYsVplyA3EGy9XXPJx9pNzNuftFqKvw2fBnJF9apOI=
+github.com/corentings/chess/v2 v2.6.0/go.mod h1:UPFmUPTLiJN9qOux6aNt+NwEPuyId0+REsKMmmtYXpU=
+github.com/klauspost/compress v1.20.1 h1:T7kKElXUMXrUJ2E9QhQhxFtcK5rPyLdsGZvdbLMPdiQ=
+github.com/klauspost/compress v1.20.1/go.mod h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI=
