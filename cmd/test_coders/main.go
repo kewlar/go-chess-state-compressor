@@ -23,6 +23,7 @@ func main() {
 		coders.NewDummyCoder(),
 		coders.NewFenValidator(),
 		coders.NewBinaryFenCoder(),
+		coders.NewBinaryFenCompactCoder(),
 	}
 
 	// Prepare to read input data.
