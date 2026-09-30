@@ -14,7 +14,7 @@ type BinaryFenCompactCoder struct {
 }
 
 var (
-	v2CodePieces      = []rune{'p', 'k', 'q', 'r', 'b', 'n'}
+	v2CodePieces      = []rune{'p', 'k', 'q', 'r', 'b', 'n', 'P'}
 	v2CastlingOptions = []rune{'K', 'Q', 'k', 'q'}
 )
 
@@ -39,6 +39,30 @@ func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
 
 	parts := strings.Fields(fen)
 
+	// Side to move.
+	whiteToMove := parts[1] == "w"
+
+	// Castling availability.
+	castling := []bool{}
+	for _, option := range c.castlingOptions {
+		castling = append(castling, strings.ContainsRune(parts[2], option))
+	}
+
+	// En passant square.
+	enPassant, enPassantPawn := byte(64), 64 // 64 == no en passant
+	if parts[3] != "-" {
+		file := parts[3][0] - 'a'
+		rank := parts[3][1] - '1'
+		enPassant = (7-rank)*8 + file
+		enPassantPawn = int(enPassant) ^ 8 // The coordinate of the pawn that moved two squares.
+	}
+
+	// Halfmove clock.
+	halfMoves, _ := strconv.Atoi(parts[4])
+
+	// Fullmove number.
+	fullMoves, _ := strconv.Atoi(parts[5])
+
 	// Piece placement
 	occupancy := uint64(0)
 	color := uint32(0)
@@ -62,33 +86,14 @@ func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
 		if isWhite {
 			color |= 1 << len(pieces)
 		}
+
+		if enPassantPawn == cell && pieceType == 'p' {
+			pieceType = 'P' // En passant pawn.
+		}
 		pieces = append(pieces, c.pieceCodes[pieceType])
 
 		cell++
 	}
-
-	// Side to move.
-	whiteToMove := parts[1] == "w"
-
-	// Castling availability.
-	castling := []bool{}
-	for _, option := range c.castlingOptions {
-		castling = append(castling, strings.ContainsRune(parts[2], option))
-	}
-
-	// En passant square.
-	enPassant := byte(64) // 64 == no en passant
-	if parts[3] != "-" {
-		file := parts[3][0] - 'a'
-		rank := parts[3][1] - '1'
-		enPassant = (7-rank)*8 + file
-	}
-
-	// Halfmove clock.
-	halfMoves, _ := strconv.Atoi(parts[4])
-
-	// Fullmove number.
-	fullMoves, _ := strconv.Atoi(parts[5])
 
 	// GENERATE BITS
 
@@ -110,7 +115,7 @@ func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
 	}
 
 	// En passant square.
-	bf.WriteInt(uint64(enPassant), 7)
+	// Encoded via special pawn code.
 
 	// Halfmove clock & fullmove number.
 	moveNum := fullMoves*151 + halfMoves
@@ -149,7 +154,7 @@ func (c *BinaryFenCompactCoder) ToFen(data *bitfield.BitField) string {
 	}
 
 	// En passant square.
-	enPassant := data.ReadInt(7)
+	enPassant := 64 // To be parsed from piece codes.
 
 	// Halfmove clock & fullMove number.
 	moveNum := data.ReadInt(21)
@@ -176,6 +181,10 @@ func (c *BinaryFenCompactCoder) ToFen(data *bitfield.BitField) string {
 				empty = 0
 			}
 			piece, color := pieces[idx], colors[idx]
+			if piece == 'P' { // En passant pawn
+				enPassant = i ^ 8
+				piece = 'p'
+			}
 			if color { // White
 				piece &= 0b1101_1111
 			}
