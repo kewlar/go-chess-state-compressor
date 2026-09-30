@@ -9,7 +9,7 @@ import (
 
 type BinaryFenCoder struct {
 	pieceCodes      map[rune]byte
-	codePieces      map[byte]rune
+	codePieces      []rune
 	castlingOptions []rune
 }
 
@@ -22,13 +22,13 @@ var v1PieceCodes = map[rune]byte{
 	'n': 5,
 }
 
-var v1CodePieces = map[byte]rune{
-	0: 'p',
-	1: 'k',
-	2: 'q',
-	3: 'r',
-	4: 'b',
-	5: 'n',
+var v1CodePieces = []rune{
+	'p',
+	'k',
+	'q',
+	'r',
+	'b',
+	'n',
 }
 
 var v1CastlingOptions = []rune{'K', 'Q', 'k', 'q'}
