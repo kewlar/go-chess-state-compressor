@@ -112,11 +112,9 @@ func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
 	// En passant square.
 	bf.WriteInt(uint64(enPassant), 7)
 
-	// Halfmove clock.
-	bf.WriteInt(uint64(halfMoves), 8)
-
-	// Fullmove number.
-	bf.WriteInt(uint64(fullMoves), 14)
+	// Halfmove clock & fullmove number.
+	moveNum := fullMoves*151 + halfMoves
+	bf.WriteInt(uint64(moveNum), 21)
 
 	return bf
 }
@@ -153,11 +151,9 @@ func (c *BinaryFenCompactCoder) ToFen(data *bitfield.BitField) string {
 	// En passant square.
 	enPassant := data.ReadInt(7)
 
-	// Halfmove clock.
-	halfMoves := data.ReadInt(8)
-
-	// Fullmove number.
-	fullMoves := data.ReadInt(14)
+	// Halfmove clock & fullMove number.
+	moveNum := data.ReadInt(21)
+	fullMoves, halfMoves := moveNum/151, moveNum%151
 
 	// GENERATE FEN
 
