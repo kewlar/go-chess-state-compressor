@@ -21,6 +21,7 @@ func main() {
 	// Configure available coders here.
 	coders := []coders.Coder{
 		coders.NewDummyCoder(),
+		coders.NewFenValidator(),
 		coders.NewBinaryFenCoder(),
 	}
 
