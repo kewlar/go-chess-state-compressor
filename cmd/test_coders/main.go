@@ -25,6 +25,7 @@ func main() {
 		coders.NewBinaryFenCoder(),
 		coders.NewBinaryFenCompactCoder(),
 		coders.NewHuffmanCoder(),
+		coders.NewHuffmanCompactCoder(),
 	}
 
 	// Prepare to read input data.
