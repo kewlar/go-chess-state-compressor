@@ -11,12 +11,14 @@ type BinaryFenCompactCoder struct {
 	pieceCodes      [256]byte
 	codePieces      []rune
 	castlingOptions []rune
+	castlingSquares []int
 }
 
 func NewBinaryFenCompactCoder() *BinaryFenCompactCoder {
 	var (
 		codePieces      = []rune{'p', 'k', 'q', 'r', 'b', 'n', 'P', 'R'}
 		castlingOptions = []rune{'K', 'Q', 'k', 'q'}
+		castlingSquares = []int{63, 56, 7, 0} // Cell coordinates for castling rooks, respectively KQkq.
 	)
 	pieceCodes := [256]byte{}
 	for code, piece := range codePieces {
@@ -27,6 +29,7 @@ func NewBinaryFenCompactCoder() *BinaryFenCompactCoder {
 		pieceCodes:      pieceCodes,
 		codePieces:      codePieces,
 		castlingOptions: castlingOptions,
+		castlingSquares: castlingSquares,
 	}
 }
 
@@ -90,9 +93,12 @@ func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
 		if enPassantPawn == cell && pieceType == 'p' {
 			pieceType = 'P' // En passant pawn.
 		} else if pieceType == 'r' {
-			pieceType = 'R'
-			if cell == 0 && castling['q'] || cell == 7 && castling['k'] || cell == 56 && castling['Q'] || cell == 63 && castling['K'] {
-				pieceType = 'r'
+			pieceType = 'R' // Rook not available for castling by default.
+			// Castling availability.
+			for i, option := range c.castlingOptions {
+				if cell == c.castlingSquares[i] && castling[option] {
+					pieceType = 'r'
+				}
 			}
 		}
 		pieces = append(pieces, c.pieceCodes[pieceType])
@@ -187,15 +193,10 @@ func (c *BinaryFenCompactCoder) ToFen(data *bitfield.BitField) string {
 			} else if piece == 'R' { // Tainted rook
 				piece = 'r'
 			} else if piece == 'r' { // Castling-available rook
-				switch i {
-				case 0:
-					castling['q'] = true
-				case 7:
-					castling['k'] = true
-				case 56:
-					castling['Q'] = true
-				case 63:
-					castling['K'] = true
+				for j, cell := range c.castlingSquares {
+					if i == cell {
+						castling[c.castlingOptions[j]] = true
+					}
 				}
 			}
 			if color { // White
