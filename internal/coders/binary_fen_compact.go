@@ -13,20 +13,20 @@ type BinaryFenCompactCoder struct {
 	castlingOptions []rune
 }
 
-var (
-	v2CodePieces      = []rune{'p', 'k', 'q', 'r', 'b', 'n', 'P', 'R'}
-	v2CastlingOptions = []rune{'K', 'Q', 'k', 'q'}
-)
-
 func NewBinaryFenCompactCoder() *BinaryFenCompactCoder {
-	v2PieceCodes := [256]byte{}
-	for code, piece := range v2CodePieces {
-		v2PieceCodes[byte(piece)] = byte(code)
+	var (
+		codePieces      = []rune{'p', 'k', 'q', 'r', 'b', 'n', 'P', 'R'}
+		castlingOptions = []rune{'K', 'Q', 'k', 'q'}
+	)
+	pieceCodes := [256]byte{}
+	for code, piece := range codePieces {
+		pieceCodes[byte(piece)] = byte(code)
 	}
+
 	return &BinaryFenCompactCoder{
-		pieceCodes:      v2PieceCodes,
-		codePieces:      v2CodePieces,
-		castlingOptions: v2CastlingOptions,
+		pieceCodes:      pieceCodes,
+		codePieces:      codePieces,
+		castlingOptions: castlingOptions,
 	}
 }
 

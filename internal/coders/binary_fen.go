@@ -13,20 +13,21 @@ type BinaryFenCoder struct {
 	castlingOptions []rune
 }
 
-var (
-	v1CodePieces      = []rune{'p', 'k', 'q', 'r', 'b', 'n'}
-	v1CastlingOptions = []rune{'K', 'Q', 'k', 'q'}
-)
-
 func NewBinaryFenCoder() *BinaryFenCoder {
-	v1PieceCodes := [256]byte{}
-	for code, piece := range v1CodePieces {
-		v1PieceCodes[byte(piece)] = byte(code)
+	var (
+		codePieces      = []rune{'p', 'k', 'q', 'r', 'b', 'n'}
+		castlingOptions = []rune{'K', 'Q', 'k', 'q'}
+	)
+
+	pieceCodes := [256]byte{}
+	for code, piece := range codePieces {
+		pieceCodes[byte(piece)] = byte(code)
 	}
+
 	return &BinaryFenCoder{
-		pieceCodes:      v1PieceCodes,
-		codePieces:      v1CodePieces,
-		castlingOptions: v1CastlingOptions,
+		pieceCodes:      pieceCodes,
+		codePieces:      codePieces,
+		castlingOptions: castlingOptions,
 	}
 }
 
