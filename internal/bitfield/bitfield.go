@@ -63,6 +63,12 @@ func (b *BitField) WriteBool(x bool) {
 	b.Length++
 }
 
+func (b *BitField) WriteBoolSlice(x []bool) {
+	for _, y := range x {
+		b.WriteBool(y)
+	}
+}
+
 func (b *BitField) ReadBool() bool {
 	if b.ReadHead+1 > b.Length {
 		panic("reading out of bounds")

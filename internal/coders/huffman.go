@@ -1,6 +1,7 @@
 package coders
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -8,31 +9,109 @@ import (
 )
 
 type HuffmanCoder struct {
-	pieceCodes      [256]byte
-	codePieces      []rune
 	castlingOptions []rune
+	huffmanTree     *HuffmanNode
+	huffmanDict     map[rune]*HuffmanNode
 }
 
 func NewHuffmanCoder() *HuffmanCoder {
 	var (
-		codePieces      = []rune{'p', 'k', 'q', 'r', 'b', 'n'}
 		castlingOptions = []rune{'K', 'Q', 'k', 'q'}
+		frequencies     = map[rune]int{
+			'p': 16,
+			'k': 2,
+			'q': 2,
+			'r': 4,
+			'b': 4,
+			'n': 4,
+		}
 	)
 
-	pieceCodes := [256]byte{}
-	for code, piece := range codePieces {
-		pieceCodes[byte(piece)] = byte(code)
-	}
+	huffmanTree := buildHuffmanTree(frequencies)
+	huffmanDict := buildHuffmanDict(huffmanTree)
 
 	return &HuffmanCoder{
-		pieceCodes:      pieceCodes,
-		codePieces:      codePieces,
 		castlingOptions: castlingOptions,
+		huffmanTree:     huffmanTree,
+		huffmanDict:     huffmanDict,
 	}
 }
 
 func (c *HuffmanCoder) Name() string {
 	return "Huffman"
+}
+
+type HuffmanNode struct {
+	Bits      []bool
+	Value     rune
+	Frequency int
+	Children  map[bool]*HuffmanNode
+	Parent    *HuffmanNode
+}
+
+func buildHuffmanTree(frequencies map[rune]int) *HuffmanNode {
+	leaves := []*HuffmanNode{}
+	for r, n := range frequencies {
+		leaf := &HuffmanNode{
+			Value:     r,
+			Frequency: n,
+		}
+		leaves = append(leaves, leaf)
+	}
+	for len(leaves) > 1 {
+		slices.SortFunc(leaves, func(a, b *HuffmanNode) int {
+			if a.Frequency < b.Frequency {
+				return -1
+			}
+			if a.Frequency > b.Frequency {
+				return 1
+			}
+			return 0
+		})
+		a, b := leaves[0], leaves[1]
+		parent := &HuffmanNode{
+			Frequency: a.Frequency + b.Frequency,
+			Children:  map[bool]*HuffmanNode{},
+		}
+		a.prependBit(false)
+		b.prependBit(true)
+		a.Parent = parent
+		b.Parent = parent
+		parent.Children[false] = a
+		parent.Children[true] = b
+		leaves = append(leaves[2:], parent)
+	}
+
+	return leaves[0]
+}
+
+func (node *HuffmanNode) prependBit(bit bool) {
+	if node.IsLeaf() {
+		node.Bits = append([]bool{bit}, node.Bits...)
+	} else {
+		node.Children[false].prependBit(bit)
+		node.Children[true].prependBit(bit)
+	}
+}
+
+func (node *HuffmanNode) IsLeaf() bool {
+	return node.Children == nil
+}
+
+func buildHuffmanDict(tree *HuffmanNode) map[rune]*HuffmanNode {
+	dict := map[rune]*HuffmanNode{}
+	var node *HuffmanNode
+	queue := []*HuffmanNode{tree}
+	for len(queue) > 0 {
+		node, queue = queue[0], queue[1:]
+		if node.IsLeaf() {
+			dict[node.Value] = node
+		} else {
+			queue = append(queue, node.Children[false], node.Children[true])
+		}
+	}
+
+	return dict
 }
 
 func (c *HuffmanCoder) FromFen(fen string) *bitfield.BitField {
@@ -43,7 +122,7 @@ func (c *HuffmanCoder) FromFen(fen string) *bitfield.BitField {
 	// Piece placement
 	occupancy := uint64(0)
 	color := uint32(0)
-	pieces := []byte{}
+	pieces := []rune{}
 	cell := 0
 	for _, r := range parts[0] {
 		if r == '/' {
@@ -63,7 +142,7 @@ func (c *HuffmanCoder) FromFen(fen string) *bitfield.BitField {
 		if isWhite {
 			color |= 1 << len(pieces)
 		}
-		pieces = append(pieces, c.pieceCodes[pieceType])
+		pieces = append(pieces, pieceType)
 
 		cell++
 	}
@@ -99,7 +178,7 @@ func (c *HuffmanCoder) FromFen(fen string) *bitfield.BitField {
 	bf.WriteInt(occupancy, 64)
 	bf.WriteInt(uint64(color), len(pieces))
 	for _, piece := range pieces {
-		bf.WriteInt(uint64(piece), 3)
+		bf.WriteBoolSlice(c.huffmanDict[piece].Bits)
 	}
 
 	// Side to move.
@@ -138,8 +217,13 @@ func (c *HuffmanCoder) ToFen(data *bitfield.BitField) string {
 	// Piece placement: pieces.
 	pieces := make([]rune, 0, pieceCount)
 	for range pieceCount {
-		piece := byte(data.ReadInt(3))
-		pieces = append(pieces, c.codePieces[piece])
+		// Read Huffman code.
+		node := c.huffmanTree
+		for !node.IsLeaf() {
+			bit := data.ReadBool()
+			node = node.Children[bit]
+		}
+		pieces = append(pieces, node.Value)
 	}
 
 	// Side to move.
