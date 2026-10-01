@@ -1,17 +1,17 @@
 package coders
 
 import (
-	"slices"
 	"strconv"
 	"strings"
 
 	"example.com/go-chess/internal/bitfield"
+	"example.com/go-chess/internal/huffman"
 )
 
 type HuffmanCoder struct {
 	castlingOptions []rune
-	huffmanTree     *HuffmanNode
-	huffmanDict     map[rune]*HuffmanNode
+	huffmanTree     *huffman.Node
+	huffmanDict     map[rune]*huffman.Node
 }
 
 func NewHuffmanCoder() *HuffmanCoder {
@@ -27,91 +27,17 @@ func NewHuffmanCoder() *HuffmanCoder {
 		}
 	)
 
-	huffmanTree := buildHuffmanTree(frequencies)
-	huffmanDict := buildHuffmanDict(huffmanTree)
+	huffmanTree := huffman.BuildHuffmanTree(frequencies)
 
 	return &HuffmanCoder{
 		castlingOptions: castlingOptions,
 		huffmanTree:     huffmanTree,
-		huffmanDict:     huffmanDict,
+		huffmanDict:     huffmanTree.BuildDictionary(),
 	}
 }
 
 func (c *HuffmanCoder) Name() string {
 	return "Huffman"
-}
-
-type HuffmanNode struct {
-	Bits      []bool
-	Value     rune
-	Frequency int
-	Children  map[bool]*HuffmanNode
-	Parent    *HuffmanNode
-}
-
-func buildHuffmanTree(frequencies map[rune]int) *HuffmanNode {
-	leaves := []*HuffmanNode{}
-	for r, n := range frequencies {
-		leaf := &HuffmanNode{
-			Value:     r,
-			Frequency: n,
-		}
-		leaves = append(leaves, leaf)
-	}
-	for len(leaves) > 1 {
-		slices.SortFunc(leaves, func(a, b *HuffmanNode) int {
-			if a.Frequency < b.Frequency {
-				return -1
-			}
-			if a.Frequency > b.Frequency {
-				return 1
-			}
-			return 0
-		})
-		a, b := leaves[0], leaves[1]
-		parent := &HuffmanNode{
-			Frequency: a.Frequency + b.Frequency,
-			Children:  map[bool]*HuffmanNode{},
-		}
-		a.prependBit(false)
-		b.prependBit(true)
-		a.Parent = parent
-		b.Parent = parent
-		parent.Children[false] = a
-		parent.Children[true] = b
-		leaves = append(leaves[2:], parent)
-	}
-
-	return leaves[0]
-}
-
-func (node *HuffmanNode) prependBit(bit bool) {
-	if node.IsLeaf() {
-		node.Bits = append([]bool{bit}, node.Bits...)
-	} else {
-		node.Children[false].prependBit(bit)
-		node.Children[true].prependBit(bit)
-	}
-}
-
-func (node *HuffmanNode) IsLeaf() bool {
-	return node.Children == nil
-}
-
-func buildHuffmanDict(tree *HuffmanNode) map[rune]*HuffmanNode {
-	dict := map[rune]*HuffmanNode{}
-	var node *HuffmanNode
-	queue := []*HuffmanNode{tree}
-	for len(queue) > 0 {
-		node, queue = queue[0], queue[1:]
-		if node.IsLeaf() {
-			dict[node.Value] = node
-		} else {
-			queue = append(queue, node.Children[false], node.Children[true])
-		}
-	}
-
-	return dict
 }
 
 func (c *HuffmanCoder) FromFen(fen string) *bitfield.BitField {
