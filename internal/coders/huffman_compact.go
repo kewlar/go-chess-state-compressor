@@ -45,10 +45,16 @@ func (c *HuffmanCompactCoder) FromFen(fen string) *bitfield.BitField {
 
 	parts := strings.Fields(fen)
 
+	// En passant square.
+	enPassant := byte(64) // 64 == no en passant
+	if parts[3] != "-" {
+		file := parts[3][0] - 'a'
+		rank := parts[3][1] - '1'
+		enPassant = (7-rank)*8 + file
+	}
+
 	// Piece placement
-	occupancy := uint64(0)
-	color := uint32(0)
-	pieces := []rune{}
+	board := [64]rune{}
 	cell := 0
 	for _, r := range parts[0] {
 		if r == '/' {
@@ -57,6 +63,25 @@ func (c *HuffmanCompactCoder) FromFen(fen string) *bitfield.BitField {
 
 		if '1' <= r && r <= '8' {
 			cell += int(r - '0')
+			continue
+		}
+
+		board[cell] = r
+		cell++
+	}
+
+	// Encode en passant in board configuration
+	if enPassant != 64 {
+		enPassantPawn := enPassant ^ 8
+		homeRankSquare := enPassant ^ 16
+		board[enPassantPawn], board[homeRankSquare] = board[homeRankSquare], board[enPassantPawn]
+	}
+
+	occupancy := uint64(0)
+	color := uint32(0)
+	pieces := []rune{}
+	for cell, r := range board {
+		if r == 0 {
 			continue
 		}
 
@@ -69,8 +94,6 @@ func (c *HuffmanCompactCoder) FromFen(fen string) *bitfield.BitField {
 			color |= 1 << len(pieces)
 		}
 		pieces = append(pieces, pieceType)
-
-		cell++
 	}
 
 	// Side to move.
@@ -80,14 +103,6 @@ func (c *HuffmanCompactCoder) FromFen(fen string) *bitfield.BitField {
 	castling := []bool{}
 	for _, option := range c.castlingOptions {
 		castling = append(castling, strings.ContainsRune(parts[2], option))
-	}
-
-	// En passant square.
-	enPassant := byte(64) // 64 == no en passant
-	if parts[3] != "-" {
-		file := parts[3][0] - 'a'
-		rank := parts[3][1] - '1'
-		enPassant = (7-rank)*8 + file
 	}
 
 	// Halfmove clock.
@@ -116,7 +131,7 @@ func (c *HuffmanCompactCoder) FromFen(fen string) *bitfield.BitField {
 	}
 
 	// En passant square.
-	bf.WriteInt(uint64(enPassant), 7)
+	// Encoded in piece placement data.
 
 	// Halfmove clock & fullmove number.
 	moveNum := fullMoves*151 + halfMoves
@@ -160,7 +175,7 @@ func (c *HuffmanCompactCoder) ToFen(data *bitfield.BitField) string {
 	}
 
 	// En passant square.
-	enPassant := data.ReadInt(7)
+	// Decoded from piece placement data.
 
 	// Halfmove clock & fullMove number.
 	moveNum := data.ReadInt(21)
@@ -171,9 +186,37 @@ func (c *HuffmanCompactCoder) ToFen(data *bitfield.BitField) string {
 	fen := strings.Builder{}
 
 	// Piece placement.
-	empty := 0
+	board := [64]rune{}
 	idx := 0
 	for i, occupied := range occupancy {
+		if occupied {
+			piece, color := pieces[idx], colors[idx]
+			if color { // White
+				piece &= 0b1101_1111
+			}
+			board[i] = piece
+			idx++
+		}
+	}
+
+	// Restore en passant pawn.
+	enPassant := 64
+	from, to := 0, 7
+	if !isWhite {
+		from, to = 56, 63
+	}
+	for i := from; i <= to; i++ {
+		if board[i]|32 == 'p' {
+			enPassant = i ^ 16
+			enPassantPawn := enPassant ^ 8
+			board[enPassantPawn], board[i] = board[i], board[enPassantPawn]
+			break
+		}
+	}
+
+	empty := 0
+	idx = 0
+	for i, piece := range board {
 		if i&7 == 0 && i != 0 {
 			if empty > 0 {
 				fen.WriteRune('0' + rune(empty))
@@ -181,14 +224,10 @@ func (c *HuffmanCompactCoder) ToFen(data *bitfield.BitField) string {
 			}
 			fen.WriteRune('/')
 		}
-		if occupied {
+		if piece != 0 {
 			if empty > 0 {
 				fen.WriteRune('0' + rune(empty))
 				empty = 0
-			}
-			piece, color := pieces[idx], colors[idx]
-			if color { // White
-				piece &= 0b1101_1111
 			}
 			fen.WriteRune(piece)
 			idx++
