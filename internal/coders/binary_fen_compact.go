@@ -14,7 +14,7 @@ type BinaryFenCompactCoder struct {
 }
 
 var (
-	v2CodePieces      = []rune{'p', 'k', 'q', 'r', 'b', 'n', 'P'}
+	v2CodePieces      = []rune{'p', 'k', 'q', 'r', 'b', 'n', 'P', 'R'}
 	v2CastlingOptions = []rune{'K', 'Q', 'k', 'q'}
 )
 
@@ -43,9 +43,9 @@ func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
 	whiteToMove := parts[1] == "w"
 
 	// Castling availability.
-	castling := []bool{}
+	castling := map[rune]bool{}
 	for _, option := range c.castlingOptions {
-		castling = append(castling, strings.ContainsRune(parts[2], option))
+		castling[option] = strings.ContainsRune(parts[2], option)
 	}
 
 	// En passant square.
@@ -89,6 +89,11 @@ func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
 
 		if enPassantPawn == cell && pieceType == 'p' {
 			pieceType = 'P' // En passant pawn.
+		} else if pieceType == 'r' {
+			pieceType = 'R'
+			if cell == 0 && castling['q'] || cell == 7 && castling['k'] || cell == 56 && castling['Q'] || cell == 63 && castling['K'] {
+				pieceType = 'r'
+			}
 		}
 		pieces = append(pieces, c.pieceCodes[pieceType])
 
@@ -110,9 +115,7 @@ func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
 	bf.WriteBool(whiteToMove)
 
 	// Castling availability.
-	for idx := range c.castlingOptions {
-		bf.WriteBool(castling[idx])
-	}
+	// Encoded via special rook code.
 
 	// En passant square.
 	// Encoded via special pawn code.
@@ -149,9 +152,6 @@ func (c *BinaryFenCompactCoder) ToFen(data *bitfield.BitField) string {
 
 	// Castling availability.
 	castling := map[rune]bool{}
-	for _, option := range c.castlingOptions {
-		castling[option] = data.ReadBool()
-	}
 
 	// En passant square.
 	enPassant := 64 // To be parsed from piece codes.
@@ -184,6 +184,19 @@ func (c *BinaryFenCompactCoder) ToFen(data *bitfield.BitField) string {
 			if piece == 'P' { // En passant pawn
 				enPassant = i ^ 8
 				piece = 'p'
+			} else if piece == 'R' { // Tainted rook
+				piece = 'r'
+			} else if piece == 'r' { // Castling-available rook
+				switch i {
+				case 0:
+					castling['q'] = true
+				case 7:
+					castling['k'] = true
+				case 56:
+					castling['Q'] = true
+				case 63:
+					castling['K'] = true
+				}
 			}
 			if color { // White
 				piece &= 0b1101_1111
