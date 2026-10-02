@@ -1,38 +1,31 @@
 package coders
 
 import (
-	"strconv"
-	"strings"
-
 	"example.com/go-chess/internal/bitfield"
+	"example.com/go-chess/internal/chess"
 	"example.com/go-chess/internal/huffman"
 )
 
 type HuffmanCompactCoder struct {
-	castlingOptions []rune
-	huffmanTree     *huffman.Node
-	huffmanDict     map[rune]*huffman.Node
+	huffmanTree *huffman.Node
+	huffmanDict map[rune]*huffman.Node
 }
 
 func NewHuffmanCompactCoder() *HuffmanCompactCoder {
-	var (
-		castlingOptions = []rune{'K', 'Q', 'k', 'q'}
-		frequencies     = map[rune]int{
-			'p': 16,
-			'k': 2,
-			'q': 2,
-			'r': 4,
-			'b': 4,
-			'n': 4,
-		}
-	)
+	frequencies := map[rune]int{
+		'p': 16,
+		'k': 2,
+		'q': 2,
+		'r': 4,
+		'b': 4,
+		'n': 4,
+	}
 
 	huffmanTree := huffman.BuildHuffmanTree(frequencies)
 
 	return &HuffmanCompactCoder{
-		castlingOptions: castlingOptions,
-		huffmanTree:     huffmanTree,
-		huffmanDict:     huffmanTree.BuildDictionary(),
+		huffmanTree: huffmanTree,
+		huffmanDict: huffmanTree.BuildDictionary(),
 	}
 }
 
@@ -41,46 +34,20 @@ func (c *HuffmanCompactCoder) Name() string {
 }
 
 func (c *HuffmanCompactCoder) FromFen(fen string) *bitfield.BitField {
-	// PARSE FEN
-
-	parts := strings.Fields(fen)
-
-	// En passant square.
-	enPassant := byte(64) // 64 == no en passant
-	if parts[3] != "-" {
-		file := parts[3][0] - 'a'
-		rank := parts[3][1] - '1'
-		enPassant = (7-rank)*8 + file
-	}
-
-	// Piece placement
-	board := [64]rune{}
-	cell := 0
-	for _, r := range parts[0] {
-		if r == '/' {
-			continue
-		}
-
-		if '1' <= r && r <= '8' {
-			cell += int(r - '0')
-			continue
-		}
-
-		board[cell] = r
-		cell++
-	}
+	state, _ := chess.ParseFen(fen)
 
 	// Encode en passant in board configuration
-	if enPassant != 64 {
-		enPassantPawn := enPassant ^ 8
-		homeRankSquare := enPassant ^ 16
-		board[enPassantPawn], board[homeRankSquare] = board[homeRankSquare], board[enPassantPawn]
+	if state.EnPassant != chess.NoEnPassant {
+		enPassantPawn := state.EnPassant ^ 8
+		homeRankSquare := state.EnPassant ^ 16
+		state.Board[enPassantPawn], state.Board[homeRankSquare] = state.Board[homeRankSquare], state.Board[enPassantPawn]
 	}
 
+	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy := uint64(0)
 	color := uint32(0)
 	pieces := []rune{}
-	for cell, r := range board {
+	for cell, r := range state.Board {
 		if r == 0 {
 			continue
 		}
@@ -96,23 +63,6 @@ func (c *HuffmanCompactCoder) FromFen(fen string) *bitfield.BitField {
 		pieces = append(pieces, pieceType)
 	}
 
-	// Side to move.
-	whiteToMove := parts[1] == "w"
-
-	// Castling availability.
-	castling := []bool{}
-	for _, option := range c.castlingOptions {
-		castling = append(castling, strings.ContainsRune(parts[2], option))
-	}
-
-	// Halfmove clock.
-	halfMoves, _ := strconv.Atoi(parts[4])
-
-	// Fullmove number.
-	fullMoves, _ := strconv.Atoi(parts[5])
-
-	// GENERATE BITS
-
 	bf := &bitfield.BitField{}
 
 	// Piece placement.
@@ -123,24 +73,23 @@ func (c *HuffmanCompactCoder) FromFen(fen string) *bitfield.BitField {
 	}
 
 	// Side to move.
-	bf.WriteBool(whiteToMove)
+	bf.WriteBool(state.SideToMove == 'w')
 
 	// Castling availability.
-	for idx := range c.castlingOptions {
-		bf.WriteBool(castling[idx])
+	for _, option := range chess.CastlingOptions {
+		bf.WriteBool(state.Castling[option])
 	}
 
-	// En passant square.
-	// Encoded in piece placement data.
-
 	// Halfmove clock & fullmove number.
-	moveNum := fullMoves*151 + halfMoves
+	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
 	bf.WriteInt(uint64(moveNum), 21)
 
 	return bf
 }
 
 func (c *HuffmanCompactCoder) ToFen(data *bitfield.BitField) string {
+	state := chess.NewState()
+
 	// Piece placement: occupancy.
 	occupancy := data.ReadBoolSlice(64)
 	pieceCount := 0
@@ -167,26 +116,22 @@ func (c *HuffmanCompactCoder) ToFen(data *bitfield.BitField) string {
 
 	// Side to move.
 	isWhite := data.ReadBool()
-
-	// Castling availability.
-	castling := map[rune]bool{}
-	for _, option := range c.castlingOptions {
-		castling[option] = data.ReadBool()
+	if isWhite {
+		state.SideToMove = 'w'
+	} else {
+		state.SideToMove = 'b'
 	}
 
-	// En passant square.
-	// Decoded from piece placement data.
+	// Castling availability.
+	for _, option := range chess.CastlingOptions {
+		state.Castling[option] = data.ReadBool()
+	}
 
 	// Halfmove clock & fullMove number.
-	moveNum := data.ReadInt(21)
-	fullMoves, halfMoves := moveNum/151, moveNum%151
-
-	// GENERATE FEN
-
-	fen := strings.Builder{}
+	moveNum := int(data.ReadInt(21))
+	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 
 	// Piece placement.
-	board := [64]rune{}
 	idx := 0
 	for i, occupied := range occupancy {
 		if occupied {
@@ -194,90 +139,25 @@ func (c *HuffmanCompactCoder) ToFen(data *bitfield.BitField) string {
 			if color { // White
 				piece &= 0b1101_1111
 			}
-			board[i] = piece
+			state.Board[i] = piece
 			idx++
 		}
 	}
 
 	// Restore en passant pawn.
-	enPassant := 64
+	state.EnPassant = chess.NoEnPassant
 	from, to := 0, 7
 	if !isWhite {
 		from, to = 56, 63
 	}
 	for i := from; i <= to; i++ {
-		if board[i]|32 == 'p' {
-			enPassant = i ^ 16
-			enPassantPawn := enPassant ^ 8
-			board[enPassantPawn], board[i] = board[i], board[enPassantPawn]
+		if state.Board[i]|32 == 'p' {
+			state.EnPassant = i ^ 16
+			enPassantPawn := state.EnPassant ^ 8
+			state.Board[enPassantPawn], state.Board[i] = state.Board[i], state.Board[enPassantPawn]
 			break
 		}
 	}
 
-	empty := 0
-	idx = 0
-	for i, piece := range board {
-		if i&7 == 0 && i != 0 {
-			if empty > 0 {
-				fen.WriteRune('0' + rune(empty))
-				empty = 0
-			}
-			fen.WriteRune('/')
-		}
-		if piece != 0 {
-			if empty > 0 {
-				fen.WriteRune('0' + rune(empty))
-				empty = 0
-			}
-			fen.WriteRune(piece)
-			idx++
-		} else {
-			empty++
-		}
-	}
-	if empty > 0 {
-		fen.WriteRune('0' + rune(empty))
-	}
-	fen.WriteRune(' ')
-
-	// Side to move.
-	if isWhite {
-		fen.WriteRune('w')
-	} else {
-		fen.WriteRune('b')
-	}
-	fen.WriteRune(' ')
-
-	// Castling availability.
-	none := true
-	for _, option := range c.castlingOptions {
-		if castling[option] {
-			fen.WriteRune(option)
-			none = false
-		}
-	}
-	if none {
-		fen.WriteRune('-')
-	}
-	fen.WriteRune(' ')
-
-	// En passant square.
-	if enPassant <= 63 {
-		rank := 7 - (enPassant >> 3)
-		file := enPassant & 7
-		fen.WriteRune('a' + rune(file))
-		fen.WriteRune('1' + rune(rank))
-	} else {
-		fen.WriteRune('-')
-	}
-	fen.WriteRune(' ')
-
-	// Halfmove clock.
-	fen.WriteString(strconv.Itoa(int(halfMoves)))
-	fen.WriteRune(' ')
-
-	// Fullmove number.
-	fen.WriteString(strconv.Itoa(int(fullMoves)))
-
-	return fen.String()
+	return state.ToFen()
 }
