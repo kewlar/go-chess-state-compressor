@@ -1,23 +1,17 @@
 package coders
 
 import (
-	"strconv"
-	"strings"
-
 	"example.com/go-chess/internal/bitfield"
+	"example.com/go-chess/internal/chess"
 )
 
 type BinaryFenCoder struct {
-	pieceCodes      [256]byte
-	codePieces      []rune
-	castlingOptions []rune
+	pieceCodes [256]byte
+	codePieces []rune
 }
 
 func NewBinaryFenCoder() *BinaryFenCoder {
-	var (
-		codePieces      = []rune{'p', 'k', 'q', 'r', 'b', 'n'}
-		castlingOptions = []rune{'K', 'Q', 'k', 'q'}
-	)
+	codePieces := []rune{'p', 'k', 'q', 'r', 'b', 'n'}
 
 	pieceCodes := [256]byte{}
 	for code, piece := range codePieces {
@@ -25,9 +19,8 @@ func NewBinaryFenCoder() *BinaryFenCoder {
 	}
 
 	return &BinaryFenCoder{
-		pieceCodes:      pieceCodes,
-		codePieces:      codePieces,
-		castlingOptions: castlingOptions,
+		pieceCodes: pieceCodes,
+		codePieces: codePieces,
 	}
 }
 
@@ -36,22 +29,14 @@ func (c *BinaryFenCoder) Name() string {
 }
 
 func (c *BinaryFenCoder) FromFen(fen string) *bitfield.BitField {
-	// PARSE FEN
+	state, _ := chess.ParseFen(fen)
 
-	parts := strings.Fields(fen)
-
-	// Piece placement
+	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy := uint64(0)
 	color := uint32(0)
 	pieces := []byte{}
-	cell := 0
-	for _, r := range parts[0] {
-		if r == '/' {
-			continue
-		}
-
-		if '1' <= r && r <= '8' {
-			cell += int(r - '0')
+	for cell, r := range state.Board {
+		if r == 0 {
 			continue
 		}
 
@@ -64,34 +49,7 @@ func (c *BinaryFenCoder) FromFen(fen string) *bitfield.BitField {
 			color |= 1 << len(pieces)
 		}
 		pieces = append(pieces, c.pieceCodes[pieceType])
-
-		cell++
 	}
-
-	// Side to move.
-	whiteToMove := parts[1] == "w"
-
-	// Castling availability.
-	castling := []bool{}
-	for _, option := range c.castlingOptions {
-		castling = append(castling, strings.ContainsRune(parts[2], option))
-	}
-
-	// En passant square.
-	enPassant := byte(64) // 64 == no en passant
-	if parts[3] != "-" {
-		file := parts[3][0] - 'a'
-		rank := parts[3][1] - '1'
-		enPassant = (7-rank)*8 + file
-	}
-
-	// Halfmove clock.
-	halfMoves, _ := strconv.Atoi(parts[4])
-
-	// Fullmove number.
-	fullMoves, _ := strconv.Atoi(parts[5])
-
-	// GENERATE BITS
 
 	bf := &bitfield.BitField{}
 
@@ -103,26 +61,27 @@ func (c *BinaryFenCoder) FromFen(fen string) *bitfield.BitField {
 	}
 
 	// Side to move.
-	bf.WriteBool(whiteToMove)
+	bf.WriteBool(state.SideToMove == 'w')
 
 	// Castling availability.
-	for idx := range c.castlingOptions {
-		bf.WriteBool(castling[idx])
+	for _, option := range chess.CastlingOptions {
+		bf.WriteBool(state.Castling[option])
 	}
 
 	// En passant square.
-	bf.WriteInt(uint64(enPassant), 7)
+	bf.WriteInt(uint64(state.EnPassant), 7)
 
 	// Halfmove clock.
-	bf.WriteInt(uint64(halfMoves), 8)
+	bf.WriteInt(uint64(state.Halfmove), 8)
 
 	// Fullmove number.
-	bf.WriteInt(uint64(fullMoves), 14)
-
+	bf.WriteInt(uint64(state.Fullmove), 14)
 	return bf
 }
 
 func (c *BinaryFenCoder) ToFen(data *bitfield.BitField) string {
+	state := chess.NewState()
+
 	// Piece placement: occupancy.
 	occupancy := data.ReadBoolSlice(64)
 	pieceCount := 0
@@ -144,95 +103,38 @@ func (c *BinaryFenCoder) ToFen(data *bitfield.BitField) string {
 
 	// Side to move.
 	isWhite := data.ReadBool()
+	if isWhite {
+		state.SideToMove = 'w'
+	} else {
+		state.SideToMove = 'b'
+	}
 
 	// Castling availability.
-	castling := map[rune]bool{}
-	for _, option := range c.castlingOptions {
-		castling[option] = data.ReadBool()
+	for _, option := range chess.CastlingOptions {
+		state.Castling[option] = data.ReadBool()
 	}
 
 	// En passant square.
-	enPassant := data.ReadInt(7)
+	state.EnPassant = int(data.ReadInt(7))
 
 	// Halfmove clock.
-	halfMoves := data.ReadInt(8)
+	state.Halfmove = int(data.ReadInt(8))
 
 	// Fullmove number.
-	fullMoves := data.ReadInt(14)
-
-	// GENERATE FEN
-
-	fen := strings.Builder{}
+	state.Fullmove = int(data.ReadInt(14))
 
 	// Piece placement.
-	empty := 0
 	idx := 0
 	for i, occupied := range occupancy {
-		if i&7 == 0 && i != 0 {
-			if empty > 0 {
-				fen.WriteRune('0' + rune(empty))
-				empty = 0
-			}
-			fen.WriteRune('/')
-		}
 		if occupied {
-			if empty > 0 {
-				fen.WriteRune('0' + rune(empty))
-				empty = 0
-			}
 			piece, color := pieces[idx], colors[idx]
 			if color { // White
 				piece &= 0b1101_1111
 			}
-			fen.WriteRune(piece)
+			state.Board[i] = piece
 			idx++
-		} else {
-			empty++
 		}
 	}
-	if empty > 0 {
-		fen.WriteRune('0' + rune(empty))
-	}
-	fen.WriteRune(' ')
 
-	// Side to move.
-	if isWhite {
-		fen.WriteRune('w')
-	} else {
-		fen.WriteRune('b')
-	}
-	fen.WriteRune(' ')
-
-	// Castling availability.
-	none := true
-	for _, option := range c.castlingOptions {
-		if castling[option] {
-			fen.WriteRune(option)
-			none = false
-		}
-	}
-	if none {
-		fen.WriteRune('-')
-	}
-	fen.WriteRune(' ')
-
-	// En passant square.
-	if enPassant <= 63 {
-		rank := 7 - (enPassant >> 3)
-		file := enPassant & 7
-		fen.WriteRune('a' + rune(file))
-		fen.WriteRune('1' + rune(rank))
-	} else {
-		fen.WriteRune('-')
-	}
-	fen.WriteRune(' ')
-
-	// Halfmove clock.
-	fen.WriteString(strconv.Itoa(int(halfMoves)))
-	fen.WriteRune(' ')
-
-	// Fullmove number.
-	fen.WriteString(strconv.Itoa(int(fullMoves)))
-
-	return fen.String()
+	return state.ToFen()
 }
