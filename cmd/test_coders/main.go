@@ -27,6 +27,7 @@ func main() {
 		coders.NewHuffmanCoder(),
 		coders.NewHuffmanCompactCoder(),
 		coders.NewArithmeticCoder(),
+		coders.NewArithmeticByCountCoder(),
 	}
 
 	// Prepare to read input data.
