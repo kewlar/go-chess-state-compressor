@@ -13,6 +13,8 @@ type ArithmeticCoder struct {
 	intervals   map[rune]*arithmetic.Interval
 }
 
+const bitsForArithmeticCodeLength = 7
+
 func NewArithmeticCoder() *ArithmeticCoder {
 	frequencies := map[rune]int{
 		'p': 16,
@@ -65,10 +67,10 @@ func (c *ArithmeticCoder) FromFen(fen string) *bitfield.BitField {
 	// Arithmetic coding.
 	bits := arithmetic.Encode(pieces, c.intervals)
 
-	if len(bits) > 255 {
+	if len(bits) > (1<<bitsForArithmeticCodeLength)-1 {
 		log.Fatalf("encoded data too long (%d bits)", len(bits))
 	}
-	bf.WriteInt(uint64(len(bits)), 8)
+	bf.WriteInt(uint64(len(bits)), bitsForArithmeticCodeLength)
 	bf.WriteBoolSlice(bits)
 
 	// Side to move.
@@ -107,7 +109,7 @@ func (c *ArithmeticCoder) ToFen(data *bitfield.BitField) string {
 	colors := data.ReadBoolSlice(pieceCount)
 
 	// Piece placement: pieces.
-	l := int(data.ReadInt(8))
+	l := int(data.ReadInt(bitsForArithmeticCodeLength))
 	bits := data.ReadBoolSlice(l)
 	pieces := arithmetic.Decode(bits, pieceCount, c.intervals)
 
