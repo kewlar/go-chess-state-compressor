@@ -1,14 +1,16 @@
 package coders
 
 import (
+	"log"
+
+	"example.com/go-chess/internal/arithmetic"
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
-	"example.com/go-chess/internal/huffman"
 )
 
 type ArithmeticCoder struct {
-	huffmanTree *huffman.Node
-	huffmanDict map[rune]*huffman.Node
+	frequencies map[rune]int
+	intervals   map[rune]*arithmetic.Interval
 }
 
 func NewArithmeticCoder() *ArithmeticCoder {
@@ -21,11 +23,9 @@ func NewArithmeticCoder() *ArithmeticCoder {
 		'n': 4,
 	}
 
-	huffmanTree := huffman.BuildHuffmanTree(frequencies)
-
 	return &ArithmeticCoder{
-		huffmanTree: huffmanTree,
-		huffmanDict: huffmanTree.BuildDictionary(),
+		frequencies: frequencies,
+		intervals:   arithmetic.FrequenciesToIntervals(frequencies),
 	}
 }
 
@@ -61,9 +61,18 @@ func (c *ArithmeticCoder) FromFen(fen string) *bitfield.BitField {
 	// Piece placement.
 	bf.WriteInt(occupancy, 64)
 	bf.WriteInt(uint64(color), len(pieces))
+
+	// Arithmetic coding.
+	interval := arithmetic.NewInterval(arithmetic.NewRational(0, 1), arithmetic.NewRational(1, 1))
 	for _, piece := range pieces {
-		bf.WriteBoolSlice(c.huffmanDict[piece].Bits)
+		interval.Mul(c.intervals[piece])
 	}
+	bits := interval.ToBits()
+	if len(bits) > 255 {
+		log.Fatalf("encoded data too long (%d bits)", len(bits))
+	}
+	bf.WriteInt(uint64(len(bits)), 8)
+	bf.WriteBoolSlice(bits)
 
 	// Side to move.
 	bf.WriteBool(state.SideToMove == 'w')
@@ -102,14 +111,22 @@ func (c *ArithmeticCoder) ToFen(data *bitfield.BitField) string {
 
 	// Piece placement: pieces.
 	pieces := make([]rune, 0, pieceCount)
+	l := int(data.ReadInt(8))
+	bits := data.ReadBoolSlice(l)
+	x := arithmetic.NewRationalFromBits(bits)
 	for range pieceCount {
-		// Read Huffman code.
-		node := c.huffmanTree
-		for !node.IsLeaf() {
-			bit := data.ReadBool()
-			node = node.Children[bit]
+		piece := rune(0)
+		for r, i := range c.intervals {
+			if i.Cover(x) {
+				piece = r
+				break
+			}
 		}
-		pieces = append(pieces, node.Value)
+		if piece == 0 {
+			log.Fatalf("covering interval not found")
+		}
+		pieces = append(pieces, piece)
+		x.ScaleWithInterval(c.intervals[piece])
 	}
 
 	// Side to move.
