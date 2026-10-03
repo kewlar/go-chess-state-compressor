@@ -1,6 +1,9 @@
 package arithmetic
 
-import "slices"
+import (
+	"maps"
+	"slices"
+)
 
 func FrequenciesToIntervals(frequencies map[rune]int) map[rune]*Interval {
 	pieces := []rune{}
@@ -69,18 +72,20 @@ func Decode(bits []bool, n int, intervals map[rune]*Interval) []rune {
 	return data
 }
 
-func EncodeAdaptive(data []rune, occupancy uint64, intervals, homeRowIntervals map[rune]*Interval) []bool {
+func EncodeAdaptive(data []rune, occupancy uint64, frequencies map[rune]int) []bool {
+	freqs := maps.Clone(frequencies)
 	interval := NewInterval(NewRational(0, 1), NewRational(1, 1))
 	idx := 0
 	for i := range 64 {
 		if occupancy&(1<<i) != 0 {
 			r := data[idx]
+			freqs2 := maps.Clone(freqs)
 			rank := i >> 3
 			if rank == 0 || rank == 7 {
-				interval.Mul(homeRowIntervals[r])
-			} else {
-				interval.Mul(intervals[r])
+				freqs2['p'] = 0
 			}
+			intervals := FrequenciesToIntervals(freqs2)
+			interval.Mul(intervals[r])
 			idx++
 		}
 	}
@@ -88,18 +93,20 @@ func EncodeAdaptive(data []rune, occupancy uint64, intervals, homeRowIntervals m
 	return interval.ToBits()
 }
 
-func DecodeAdaptive(bits []bool, n int, occupancy []bool, intervals, homeRowIntervals map[rune]*Interval) []rune {
+func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]int) []rune {
+	freqs := maps.Clone(frequencies)
 	data := make([]rune, 0, n)
 	x := NewRationalFromBits(bits)
 	for square, occupied := range occupancy {
 		if occupied {
 			rank := square >> 3
 			piece := rune(0)
-			ints := intervals
+			freqs2 := maps.Clone(freqs)
 			if rank == 0 || rank == 7 {
-				ints = homeRowIntervals
+				freqs2['p'] = 0
 			}
-			for r, i := range ints {
+			intervals := FrequenciesToIntervals(freqs2)
+			for r, i := range intervals {
 				if i.Cover(x) {
 					piece = r
 					break
@@ -109,7 +116,7 @@ func DecodeAdaptive(bits []bool, n int, occupancy []bool, intervals, homeRowInte
 				panic("covering interval not found")
 			}
 			data = append(data, piece)
-			x.ScaleWithInterval(ints[piece])
+			x.ScaleWithInterval(intervals[piece])
 		}
 	}
 
