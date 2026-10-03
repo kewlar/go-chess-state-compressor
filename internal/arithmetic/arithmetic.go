@@ -18,6 +18,12 @@ func FrequenciesToIntervals(frequencies map[rune]int) map[rune]*Interval {
 		if frequencies[a] < frequencies[b] {
 			return 1
 		}
+		if a < b {
+			return -1
+		}
+		if a > b {
+			return 1
+		}
 		return 0
 	})
 
