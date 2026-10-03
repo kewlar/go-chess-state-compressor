@@ -75,6 +75,7 @@ func Decode(bits []bool, n int, intervals map[rune]*Interval) []rune {
 func EncodeAdaptive(data []rune, occupancy uint64, frequencies map[rune]int) []bool {
 	freqs := maps.Clone(frequencies)
 	interval := NewInterval(NewRational(0, 1), NewRational(1, 1))
+	n := len(data)
 	idx := 0
 	for i := range 64 {
 		if occupancy&(1<<i) != 0 {
@@ -87,6 +88,8 @@ func EncodeAdaptive(data []rune, occupancy uint64, frequencies map[rune]int) []b
 			intervals := FrequenciesToIntervals(freqs2)
 			interval.Mul(intervals[r])
 			idx++
+
+			freqs = updateFrequencies(r, n-idx, freqs)
 		}
 	}
 
@@ -97,6 +100,7 @@ func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]i
 	freqs := maps.Clone(frequencies)
 	data := make([]rune, 0, n)
 	x := NewRationalFromBits(bits)
+	idx := 0
 	for square, occupied := range occupancy {
 		if occupied {
 			rank := square >> 3
@@ -116,9 +120,37 @@ func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]i
 				panic("covering interval not found")
 			}
 			data = append(data, piece)
+			idx++
 			x.ScaleWithInterval(intervals[piece])
+
+			freqs = updateFrequencies(piece, n-idx, freqs)
 		}
 	}
 
 	return data
+}
+
+func updateFrequencies(piece rune, remaining int, frequencies map[rune]int) map[rune]int {
+	freqs := maps.Clone(frequencies)
+
+	switch piece {
+	case 'k':
+		freqs[piece]--
+	case 'p':
+		freqs[piece]--
+	default:
+		freqs[piece]--
+		// One of the unencountered pawns may be promoted to a piece.
+		if freqs[piece] == 0 && freqs['p'] > 1 {
+			freqs[piece] = 1
+		}
+	}
+	remaining -= freqs['k']
+	for r, c := range freqs {
+		if r != 'k' {
+			freqs[r] = min(c, remaining)
+		}
+	}
+
+	return freqs
 }
