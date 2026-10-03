@@ -1,15 +1,30 @@
 package arithmetic
 
+import "slices"
+
 func FrequenciesToIntervals(frequencies map[rune]int) map[rune]*Interval {
+	pieces := []rune{}
 	tot := 0
-	for _, freq := range frequencies {
+	for r, freq := range frequencies {
 		tot += freq
+		pieces = append(pieces, r)
 	}
 	total := int64(tot)
 
+	slices.SortFunc(pieces, func(a, b rune) int {
+		if frequencies[a] > frequencies[b] {
+			return -1
+		}
+		if frequencies[a] < frequencies[b] {
+			return 1
+		}
+		return 0
+	})
+
 	cum := 0
 	intervals := map[rune]*Interval{}
-	for r, freq := range frequencies {
+	for _, r := range pieces {
+		freq := frequencies[r]
 		i0, i1 := int64(cum), int64(cum+freq)
 		intervals[r] = &Interval{NewRational(i0, total), NewRational(i1, total)}
 		cum += freq
