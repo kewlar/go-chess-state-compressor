@@ -62,3 +62,50 @@ func Decode(bits []bool, n int, intervals map[rune]*Interval) []rune {
 
 	return data
 }
+
+func EncodeAdaptive(data []rune, occupancy uint64, intervals, homeRowIntervals map[rune]*Interval) []bool {
+	interval := NewInterval(NewRational(0, 1), NewRational(1, 1))
+	idx := 0
+	for i := range 64 {
+		if occupancy&(1<<i) != 0 {
+			r := data[idx]
+			rank := i >> 3
+			if rank == 0 || rank == 7 {
+				interval.Mul(homeRowIntervals[r])
+			} else {
+				interval.Mul(intervals[r])
+			}
+			idx++
+		}
+	}
+
+	return interval.ToBits()
+}
+
+func DecodeAdaptive(bits []bool, n int, occupancy []bool, intervals, homeRowIntervals map[rune]*Interval) []rune {
+	data := make([]rune, 0, n)
+	x := NewRationalFromBits(bits)
+	for square, occupied := range occupancy {
+		if occupied {
+			rank := square >> 3
+			piece := rune(0)
+			ints := intervals
+			if rank == 0 || rank == 7 {
+				ints = homeRowIntervals
+			}
+			for r, i := range ints {
+				if i.Cover(x) {
+					piece = r
+					break
+				}
+			}
+			if piece == 0 {
+				panic("covering interval not found")
+			}
+			data = append(data, piece)
+			x.ScaleWithInterval(ints[piece])
+		}
+	}
+
+	return data
+}
