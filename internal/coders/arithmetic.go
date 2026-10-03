@@ -63,11 +63,8 @@ func (c *ArithmeticCoder) FromFen(fen string) *bitfield.BitField {
 	bf.WriteInt(uint64(color), len(pieces))
 
 	// Arithmetic coding.
-	interval := arithmetic.NewInterval(arithmetic.NewRational(0, 1), arithmetic.NewRational(1, 1))
-	for _, piece := range pieces {
-		interval.Mul(c.intervals[piece])
-	}
-	bits := interval.ToBits()
+	bits := arithmetic.Encode(pieces, c.intervals)
+
 	if len(bits) > 255 {
 		log.Fatalf("encoded data too long (%d bits)", len(bits))
 	}
@@ -110,24 +107,9 @@ func (c *ArithmeticCoder) ToFen(data *bitfield.BitField) string {
 	colors := data.ReadBoolSlice(pieceCount)
 
 	// Piece placement: pieces.
-	pieces := make([]rune, 0, pieceCount)
 	l := int(data.ReadInt(8))
 	bits := data.ReadBoolSlice(l)
-	x := arithmetic.NewRationalFromBits(bits)
-	for range pieceCount {
-		piece := rune(0)
-		for r, i := range c.intervals {
-			if i.Cover(x) {
-				piece = r
-				break
-			}
-		}
-		if piece == 0 {
-			log.Fatalf("covering interval not found")
-		}
-		pieces = append(pieces, piece)
-		x.ScaleWithInterval(c.intervals[piece])
-	}
+	pieces := arithmetic.Decode(bits, pieceCount, c.intervals)
 
 	// Side to move.
 	isWhite := data.ReadBool()
