@@ -74,7 +74,7 @@ func Decode(bits []bool, n int, intervals map[rune]*Interval) []rune {
 	return data
 }
 
-func EncodeAdaptive(data []rune, occupancy []bool, frequencies map[rune]int, color []bool, side rune, fullmove int, castling map[rune]bool) []bool {
+func EncodeAdaptive(data []rune, occupancy []bool, frequencies map[rune]int, color []bool, side chess.Color, fullmove int, castling map[rune]bool) []bool {
 	freqs := maps.Clone(frequencies)
 	interval := NewInterval(NewRational(0, 1), NewRational(1, 1))
 	n := len(data)
@@ -97,7 +97,7 @@ func EncodeAdaptive(data []rune, occupancy []bool, frequencies map[rune]int, col
 	return interval.ToBits()
 }
 
-func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]int, color []bool, side rune, fullmove int, castling map[rune]bool) []rune {
+func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]int, color []bool, side chess.Color, fullmove int, castling map[rune]bool) []rune {
 	freqs := maps.Clone(frequencies)
 	data := make([]rune, 0, n)
 	x := NewRationalFromBits(bits)
@@ -127,7 +127,7 @@ func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]i
 	return data
 }
 
-func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces int, occupancy, color []bool, side rune, fullmove int, castling map[rune]bool, placedPieces []rune) map[rune]int {
+func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces int, occupancy, color []bool, side chess.Color, fullmove int, castling map[rune]bool, placedPieces []rune) map[rune]int {
 	freqs := maps.Clone(frequencies)
 
 	// Pawns cannot be on home ranks.

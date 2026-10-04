@@ -73,7 +73,7 @@ func (c *HuffmanCompactCoder) FromFen(fen string) *bitfield.BitField {
 	}
 
 	// Side to move.
-	bf.WriteBool(state.SideToMove == 'w')
+	bf.WriteBool(bool(state.SideToMove))
 
 	// Castling availability.
 	for _, option := range chess.CastlingOptions {
@@ -115,12 +115,7 @@ func (c *HuffmanCompactCoder) ToFen(data *bitfield.BitField) string {
 	}
 
 	// Side to move.
-	isWhite := data.ReadBool()
-	if isWhite {
-		state.SideToMove = 'w'
-	} else {
-		state.SideToMove = 'b'
-	}
+	state.SideToMove = chess.Color(data.ReadBool())
 
 	// Castling availability.
 	for _, option := range chess.CastlingOptions {
@@ -147,7 +142,7 @@ func (c *HuffmanCompactCoder) ToFen(data *bitfield.BitField) string {
 	// Restore en passant pawn.
 	state.EnPassant = chess.NoEnPassant
 	from, to := 0, 7
-	if !isWhite {
+	if state.SideToMove == chess.Black {
 		from, to = 56, 63
 	}
 	for i := from; i <= to; i++ {

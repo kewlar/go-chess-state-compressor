@@ -74,7 +74,7 @@ func (c *ArithmeticCoder) FromFen(fen string) *bitfield.BitField {
 	bf.WriteBoolSlice(bits)
 
 	// Side to move.
-	bf.WriteBool(state.SideToMove == 'w')
+	bf.WriteBool(bool(state.SideToMove))
 
 	// Castling availability.
 	for _, option := range chess.CastlingOptions {
@@ -114,12 +114,7 @@ func (c *ArithmeticCoder) ToFen(data *bitfield.BitField) string {
 	pieces := arithmetic.Decode(bits, pieceCount, c.intervals)
 
 	// Side to move.
-	isWhite := data.ReadBool()
-	if isWhite {
-		state.SideToMove = 'w'
-	} else {
-		state.SideToMove = 'b'
-	}
+	state.SideToMove = chess.Color(data.ReadBool())
 
 	// Castling availability.
 	for _, option := range chess.CastlingOptions {

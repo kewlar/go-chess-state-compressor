@@ -9,7 +9,7 @@ import (
 
 type State struct {
 	Board      [64]rune
-	SideToMove rune // 'w' or 'b'
+	SideToMove Color // 'w' or 'b'
 	Castling   map[rune]bool
 	EnPassant  int // 0..63. Any other number - no en passant.
 	Halfmove   int // 0..150
@@ -97,7 +97,7 @@ func ParseFen(fen string) (*State, error) {
 	if parts[1] != "w" && parts[1] != "b" {
 		return nil, fmt.Errorf("side to move can be b or w, got: %s", parts[1])
 	}
-	state.SideToMove = rune(parts[1][0])
+	state.SideToMove = NewColor(rune(parts[1][0]))
 
 	// Castling availability.
 	if !reCastlingOptions.MatchString(parts[2]) {
@@ -167,7 +167,7 @@ func (state *State) ToFen() string {
 	fen.WriteRune(' ')
 
 	// Side to move.
-	fen.WriteRune(state.SideToMove)
+	fen.WriteRune(state.SideToMove.Rune())
 	fen.WriteRune(' ')
 
 	// Castling availability.

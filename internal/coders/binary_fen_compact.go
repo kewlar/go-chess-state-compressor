@@ -88,7 +88,7 @@ func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
 	}
 
 	// Side to move.
-	bf.WriteBool(state.SideToMove == 'w')
+	bf.WriteBool(bool(state.SideToMove))
 
 	// Castling availability.
 	// Encoded via special rook code.
@@ -126,12 +126,7 @@ func (c *BinaryFenCompactCoder) ToFen(data *bitfield.BitField) string {
 	}
 
 	// Side to move.
-	isWhite := data.ReadBool()
-	if isWhite {
-		state.SideToMove = 'w'
-	} else {
-		state.SideToMove = 'b'
-	}
+	state.SideToMove = chess.Color(data.ReadBool())
 
 	// En passant square.
 	state.EnPassant = 64 // To be parsed from piece codes.

@@ -9,6 +9,22 @@ const (
 	Black Color = false
 )
 
+// NewColor returns a new Color. The rune argument can be either 'w' or 'b'.
+func NewColor(c rune) Color {
+	switch c {
+	case 'w':
+		return White
+	case 'b':
+		return Black
+	}
+	panic("unexpected color")
+}
+
+// Other returns the opposite color.
+func (c Color) Other() Color {
+	return !c
+}
+
 // String returns color name as string ("White" or "Black").
 func (c Color) String() string {
 	if c {
