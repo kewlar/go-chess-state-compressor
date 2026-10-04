@@ -21,6 +21,15 @@ func bits2bytes(n int) int {
 	return bytes
 }
 
+func IntToBoolSlice(x uint64, n int) []bool {
+	out := []bool{}
+	for i := range n {
+		out = append(out, x&(1<<i) != 0)
+	}
+
+	return out
+}
+
 func (b *BitField) String() string {
 	parts := make([]string, 0, bits2bytes(b.Length)+1)
 	parts = append(parts, fmt.Sprintf("%d bits:", b.Length))

@@ -72,14 +72,14 @@ func Decode(bits []bool, n int, intervals map[rune]*Interval) []rune {
 	return data
 }
 
-func EncodeAdaptive(data []rune, occupancy uint64, frequencies map[rune]int) []bool {
+func EncodeAdaptive(data []rune, occupancy []bool, frequencies map[rune]int, color []bool, side rune, fullmove int) []bool {
 	freqs := maps.Clone(frequencies)
 	interval := NewInterval(NewRational(0, 1), NewRational(1, 1))
 	n := len(data)
 	idx := 0
 	for i := range 64 {
-		if occupancy&(1<<i) != 0 {
-			freqs2 := adjustFrequencies(freqs, i)
+		if occupancy[i] {
+			freqs2 := adjustFrequencies(freqs, i, n, occupancy, color, side, fullmove, data[:idx])
 			intervals := FrequenciesToIntervals(freqs2)
 			r := data[idx]
 			if freqs2[r] == 0 {
@@ -95,14 +95,14 @@ func EncodeAdaptive(data []rune, occupancy uint64, frequencies map[rune]int) []b
 	return interval.ToBits()
 }
 
-func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]int) []rune {
+func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]int, color []bool, side rune, fullmove int) []rune {
 	freqs := maps.Clone(frequencies)
 	data := make([]rune, 0, n)
 	x := NewRationalFromBits(bits)
 	idx := 0
 	for square, occupied := range occupancy {
 		if occupied {
-			freqs2 := adjustFrequencies(freqs, square)
+			freqs2 := adjustFrequencies(freqs, square, n, occupancy, color, side, fullmove, data)
 			intervals := FrequenciesToIntervals(freqs2)
 			piece := rune(0)
 			for r, i := range intervals {
@@ -125,7 +125,7 @@ func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]i
 	return data
 }
 
-func adjustFrequencies(frequencies map[rune]int, square int) map[rune]int {
+func adjustFrequencies(frequencies map[rune]int, square int, numPieces int, occupancy, color []bool, side rune, fullmove int, placedPieces []rune) map[rune]int {
 	freqs := maps.Clone(frequencies)
 
 	// Pawns cannot be on home ranks.
@@ -133,6 +133,41 @@ func adjustFrequencies(frequencies map[rune]int, square int) map[rune]int {
 	if rank == 0 || rank == 7 {
 		freqs['p'] = 0
 	}
+
+	// Number of the piece to be placed.
+	pieceIdx := len(placedPieces)
+	pieceColor := color[pieceIdx]
+
+	// Counts of pieces (by type) placed by the side to be placed.
+	placedCounts := map[rune]int{}
+	for i, piece := range placedPieces {
+		if color[i] == pieceColor {
+			placedCounts[piece]++
+		}
+	}
+
+	promotionPossible := fullmove >= 5 && numPieces < 32
+
+	// If promotion couldn't happen, there cannot be more pieces of a kind than there were originally on the board.
+	if !promotionPossible {
+		if placedCounts['q'] == 1 {
+			freqs['q'] = 0
+		}
+		if placedCounts['b'] == 2 {
+			freqs['b'] = 0
+		}
+		if placedCounts['n'] == 2 {
+			freqs['n'] = 0
+		}
+		if placedCounts['r'] == 2 {
+			freqs['r'] = 0
+		}
+	}
+
+	// TODO: If promotion couldn't happen, there cannot be two same-color Bishops on the same side.
+	// TODO: Side not to move cannot have their King in check.
+	// TODO: Kings cannot be within 1 square of one another.
+	// TODO: If castling is available, the only piece on the Rook square can be a Rook.
 
 	return freqs
 }
