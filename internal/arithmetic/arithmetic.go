@@ -140,6 +140,7 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 
 	placedCounts := map[rune]int{} // Counts of pieces (by type) placed by the side to be placed.
 	bishops := map[chess.Color]bool{}
+	hasKing := false
 	kingSquare := chess.InvalidSquare
 	sq, idx := chess.Square(0), 0
 	for idx < len(placedPieces) {
@@ -152,6 +153,8 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 			if piece == 'b' {
 				bishopColor := sq.Color()
 				bishops[bishopColor] = true
+			} else if piece == 'k' {
+				hasKing = true
 			}
 		}
 		if piece == 'k' {
@@ -182,6 +185,11 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 	// If promotion couldn't happen, there cannot be two same-color Bishops on the same side.
 	if !promotionPossible && bishops[square.Color()] {
 		freqs['b'] = 0
+	}
+
+	// There cannot be more than one King per side.
+	if hasKing {
+		freqs['k'] = 0
 	}
 
 	// Kings cannot be within 1 square of one another.
