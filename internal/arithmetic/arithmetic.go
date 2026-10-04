@@ -82,6 +82,9 @@ func EncodeAdaptive(data []rune, occupancy uint64, frequencies map[rune]int) []b
 			freqs2 := adjustFrequencies(freqs, i)
 			intervals := FrequenciesToIntervals(freqs2)
 			r := data[idx]
+			if freqs2[r] == 0 {
+				panic("didn't expect this piece at this position")
+			}
 			interval.Mul(intervals[r])
 			idx++
 
