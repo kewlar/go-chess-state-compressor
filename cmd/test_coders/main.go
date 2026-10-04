@@ -66,6 +66,11 @@ func main() {
 				fmt.Printf("%d\r", lines)
 			}
 			fen := scanner.Text()
+			parts := strings.Split(fen, "#")
+			fen = strings.TrimSpace(parts[0])
+			if len(fen) == 0 {
+				continue
+			}
 			coded := coder.FromFen(fen)
 			recoded := coder.ToFen(coded)
 			if fen != recoded {
