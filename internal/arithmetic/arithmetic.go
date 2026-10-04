@@ -74,14 +74,14 @@ func Decode(bits []bool, n int, intervals map[rune]*Interval) []rune {
 	return data
 }
 
-func EncodeAdaptive(data []rune, occupancy []bool, frequencies map[rune]int, color []bool, side rune, fullmove int) []bool {
+func EncodeAdaptive(data []rune, occupancy []bool, frequencies map[rune]int, color []bool, side rune, fullmove int, castling map[rune]bool) []bool {
 	freqs := maps.Clone(frequencies)
 	interval := NewInterval(NewRational(0, 1), NewRational(1, 1))
 	n := len(data)
 	idx := 0
 	for i := range 64 {
 		if occupancy[i] {
-			freqs2 := adjustFrequencies(freqs, chess.Square(i), n, occupancy, color, side, fullmove, data[:idx])
+			freqs2 := adjustFrequencies(freqs, chess.Square(i), n, occupancy, color, side, fullmove, castling, data[:idx])
 			intervals := FrequenciesToIntervals(freqs2)
 			r := data[idx]
 			if freqs2[r] == 0 {
@@ -97,14 +97,14 @@ func EncodeAdaptive(data []rune, occupancy []bool, frequencies map[rune]int, col
 	return interval.ToBits()
 }
 
-func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]int, color []bool, side rune, fullmove int) []rune {
+func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]int, color []bool, side rune, fullmove int, castling map[rune]bool) []rune {
 	freqs := maps.Clone(frequencies)
 	data := make([]rune, 0, n)
 	x := NewRationalFromBits(bits)
 	idx := 0
 	for square, occupied := range occupancy {
 		if occupied {
-			freqs2 := adjustFrequencies(freqs, chess.Square(square), n, occupancy, color, side, fullmove, data)
+			freqs2 := adjustFrequencies(freqs, chess.Square(square), n, occupancy, color, side, fullmove, castling, data)
 			intervals := FrequenciesToIntervals(freqs2)
 			piece := rune(0)
 			for r, i := range intervals {
@@ -127,7 +127,7 @@ func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]i
 	return data
 }
 
-func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces int, occupancy, color []bool, side rune, fullmove int, placedPieces []rune) map[rune]int {
+func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces int, occupancy, color []bool, side rune, fullmove int, castling map[rune]bool, placedPieces []rune) map[rune]int {
 	freqs := maps.Clone(frequencies)
 
 	// Pawns cannot be on home ranks.
@@ -136,7 +136,7 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 	}
 
 	pieceIdx := len(placedPieces) // Number of the piece to be placed.
-	pieceColor := color[pieceIdx]
+	pieceColor := chess.Color(color[pieceIdx])
 
 	placedCounts := map[rune]int{} // Counts of pieces (by type) placed by the side to be placed.
 	bishops := map[chess.Color]bool{}
@@ -148,7 +148,7 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 			sq++
 		}
 		piece := placedPieces[idx]
-		if color[idx] == pieceColor {
+		if chess.Color(color[idx]) == pieceColor {
 			placedCounts[piece]++
 			if piece == 'b' {
 				bishopColor := sq.Color()
@@ -207,8 +207,19 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 		}
 	}
 
+	// If castling is available, the only piece on the Rook square can be a Rook.
+	sqs := square.String()
+	if pieceColor == chess.White && (sqs == "a1" && castling['Q'] || sqs == "h1" && castling['K']) ||
+		pieceColor == chess.Black && (sqs == "a8" && castling['q'] || sqs == "h8" && castling['k']) {
+		freqs['r'] = 1
+		freqs['n'] = 0
+		freqs['b'] = 0
+		freqs['p'] = 0
+		freqs['k'] = 0
+		freqs['q'] = 0
+	}
+
 	// TODO: Side not to move cannot have their King in check.
-	// TODO: If castling is available, the only piece on the Rook square can be a Rook.
 
 	return freqs
 }
