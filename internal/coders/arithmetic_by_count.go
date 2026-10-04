@@ -366,7 +366,7 @@ func (c *ArithmeticByCountCoder) ToFen(data *bitfield.BitField) string {
 	}
 
 	// En passant square.
-	state.EnPassant = int(data.ReadInt(7))
+	state.EnPassant = chess.Square(data.ReadInt(7))
 
 	// Halfmove clock.
 	state.Halfmove = int(data.ReadInt(8))

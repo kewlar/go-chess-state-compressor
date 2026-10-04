@@ -107,7 +107,7 @@ func (c *ArithmeticAdaptiveCoder) ToFen(data *bitfield.BitField) string {
 		state.Castling[option] = data.ReadBool()
 	}
 	// En passant square.
-	state.EnPassant = int(data.ReadInt(7))
+	state.EnPassant = chess.Square(data.ReadInt(7))
 	// Halfmove clock.
 	state.Halfmove = int(data.ReadInt(8))
 	// Fullmove number.

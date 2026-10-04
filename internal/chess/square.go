@@ -34,5 +34,8 @@ func (s Square) IsValid() bool {
 
 // String returns square name in algebraic notation, from "a1" to "h8".
 func (s Square) String() string {
+	if !s.IsValid() {
+		return "-"
+	}
 	return string('a'+s.File()) + string('1'+s.Rank())
 }

@@ -37,7 +37,7 @@ func (c *HuffmanCompactCoder) FromFen(fen string) *bitfield.BitField {
 	state, _ := chess.ParseFen(fen)
 
 	// Encode en passant in board configuration
-	if state.EnPassant != chess.NoEnPassant {
+	if state.EnPassant.IsValid() {
 		enPassantPawn := state.EnPassant ^ 8
 		homeRankSquare := state.EnPassant ^ 16
 		state.Board[enPassantPawn], state.Board[homeRankSquare] = state.Board[homeRankSquare], state.Board[enPassantPawn]
@@ -140,14 +140,14 @@ func (c *HuffmanCompactCoder) ToFen(data *bitfield.BitField) string {
 	}
 
 	// Restore en passant pawn.
-	state.EnPassant = chess.NoEnPassant
+	state.EnPassant = chess.InvalidSquare
 	from, to := 0, 7
 	if state.SideToMove == chess.Black {
 		from, to = 56, 63
 	}
 	for i := from; i <= to; i++ {
 		if state.Board[i]|32 == 'p' {
-			state.EnPassant = i ^ 16
+			state.EnPassant = chess.Square(i ^ 16)
 			enPassantPawn := state.EnPassant ^ 8
 			state.Board[enPassantPawn], state.Board[i] = state.Board[i], state.Board[enPassantPawn]
 			break

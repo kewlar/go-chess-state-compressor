@@ -39,8 +39,8 @@ func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
 	state, _ := chess.ParseFen(fen)
 
 	// En passant square.
-	enPassantPawn := chess.NoEnPassant
-	if state.EnPassant != chess.NoEnPassant {
+	enPassantPawn := chess.InvalidSquare
+	if state.EnPassant.IsValid() {
 		enPassantPawn = state.EnPassant ^ 8
 	}
 
@@ -62,7 +62,7 @@ func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
 			color |= 1 << len(pieces)
 		}
 
-		if enPassantPawn == cell && pieceType == 'p' {
+		if enPassantPawn == chess.Square(cell) && pieceType == 'p' {
 			pieceType = 'P' // En passant pawn.
 		} else if pieceType == 'r' {
 			pieceType = 'R' // Rook not available for castling by default.
@@ -141,7 +141,7 @@ func (c *BinaryFenCompactCoder) ToFen(data *bitfield.BitField) string {
 		if occupied {
 			piece, color := pieces[idx], colors[idx]
 			if piece == 'P' { // En passant pawn
-				state.EnPassant = i ^ 8
+				state.EnPassant = chess.Square(i ^ 8)
 				piece = 'p'
 			} else if piece == 'R' { // Tainted rook
 				piece = 'r'

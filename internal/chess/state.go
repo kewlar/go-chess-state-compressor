@@ -11,13 +11,12 @@ type State struct {
 	Board      [64]rune
 	SideToMove Color // 'w' or 'b'
 	Castling   map[rune]bool
-	EnPassant  int // 0..63. Any other number - no en passant.
-	Halfmove   int // 0..150
-	Fullmove   int // 1..8848
+	EnPassant  Square // 0..63, or InvalidSquare
+	Halfmove   int    // 0..150
+	Fullmove   int    // 1..8848
 }
 
 const (
-	NoEnPassant = 64
 	MaxHalfmove = 150
 	MaxFullmove = 8848
 )
@@ -114,9 +113,9 @@ func ParseFen(fen string) (*State, error) {
 	if parts[3] != "-" {
 		file := parts[3][0] - 'a'
 		rank := parts[3][1] - '1'
-		state.EnPassant = int((7-rank)*8 + file)
+		state.EnPassant = Square((7-rank)*8 + file)
 	} else {
-		state.EnPassant = NoEnPassant
+		state.EnPassant = InvalidSquare
 	}
 
 	// Halfmove clock.
@@ -184,11 +183,7 @@ func (state *State) ToFen() string {
 	fen.WriteRune(' ')
 
 	// En passant square.
-	if state.EnPassant != NoEnPassant {
-		fen.WriteString(Square(state.EnPassant).String())
-	} else {
-		fen.WriteRune('-')
-	}
+	fen.WriteString(Square(state.EnPassant).String())
 	fen.WriteRune(' ')
 
 	// Halfmove clock.
