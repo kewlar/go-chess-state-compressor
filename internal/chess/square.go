@@ -23,3 +23,8 @@ func (s Square) IsOnHomeRank() bool {
 	rank := s.Rank()
 	return rank == 0 || rank == 7
 }
+
+// String returns square name in algebraic notation, from "a1" to "h8".
+func (s Square) String() string {
+	return string('a'+s.File()) + string('1'+s.Rank())
+}

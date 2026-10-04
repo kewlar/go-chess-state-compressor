@@ -185,10 +185,7 @@ func (state *State) ToFen() string {
 
 	// En passant square.
 	if state.EnPassant != NoEnPassant {
-		rank := 7 - (state.EnPassant >> 3)
-		file := state.EnPassant & 7
-		fen.WriteRune('a' + rune(file))
-		fen.WriteRune('1' + rune(rank))
+		fen.WriteString(Square(state.EnPassant).String())
 	} else {
 		fen.WriteRune('-')
 	}
