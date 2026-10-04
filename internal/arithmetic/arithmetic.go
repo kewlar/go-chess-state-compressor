@@ -3,6 +3,8 @@ package arithmetic
 import (
 	"maps"
 	"slices"
+
+	"example.com/go-chess/internal/chess"
 )
 
 func FrequenciesToIntervals(frequencies map[rune]int) map[rune]*Interval {
@@ -79,7 +81,7 @@ func EncodeAdaptive(data []rune, occupancy []bool, frequencies map[rune]int, col
 	idx := 0
 	for i := range 64 {
 		if occupancy[i] {
-			freqs2 := adjustFrequencies(freqs, i, n, occupancy, color, side, fullmove, data[:idx])
+			freqs2 := adjustFrequencies(freqs, chess.Square(i), n, occupancy, color, side, fullmove, data[:idx])
 			intervals := FrequenciesToIntervals(freqs2)
 			r := data[idx]
 			if freqs2[r] == 0 {
@@ -102,7 +104,7 @@ func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]i
 	idx := 0
 	for square, occupied := range occupancy {
 		if occupied {
-			freqs2 := adjustFrequencies(freqs, square, n, occupancy, color, side, fullmove, data)
+			freqs2 := adjustFrequencies(freqs, chess.Square(square), n, occupancy, color, side, fullmove, data)
 			intervals := FrequenciesToIntervals(freqs2)
 			piece := rune(0)
 			for r, i := range intervals {
@@ -125,14 +127,11 @@ func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]i
 	return data
 }
 
-func adjustFrequencies(frequencies map[rune]int, square int, numPieces int, occupancy, color []bool, side rune, fullmove int, placedPieces []rune) map[rune]int {
+func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces int, occupancy, color []bool, side rune, fullmove int, placedPieces []rune) map[rune]int {
 	freqs := maps.Clone(frequencies)
 
-	rank, file := square>>3, square&7
-	squareColor := (rank+file)&1 == 1
-
 	// Pawns cannot be on home ranks.
-	if rank == 0 || rank == 7 {
+	if square.IsOnHomeRank() {
 		freqs['p'] = 0
 	}
 
@@ -140,8 +139,8 @@ func adjustFrequencies(frequencies map[rune]int, square int, numPieces int, occu
 	pieceColor := color[pieceIdx]
 
 	placedCounts := map[rune]int{} // Counts of pieces (by type) placed by the side to be placed.
-	bishops := map[bool]bool{}
-	i, idx := 0, 0
+	bishops := map[chess.Color]bool{}
+	i, idx := chess.Square(0), 0
 	for idx < len(placedPieces) {
 		for !occupancy[i] {
 			i++
@@ -150,8 +149,7 @@ func adjustFrequencies(frequencies map[rune]int, square int, numPieces int, occu
 			piece := placedPieces[idx]
 			placedCounts[piece]++
 			if piece == 'b' {
-				rank, file := i>>3, i&7
-				bishopColor := (rank+file)&1 == 1
+				bishopColor := i.Color()
 				bishops[bishopColor] = true
 			}
 		}
@@ -178,7 +176,7 @@ func adjustFrequencies(frequencies map[rune]int, square int, numPieces int, occu
 	}
 
 	// If promotion couldn't happen, there cannot be two same-color Bishops on the same side.
-	if !promotionPossible && bishops[squareColor] {
+	if !promotionPossible && bishops[square.Color()] {
 		freqs['b'] = 0
 	}
 
