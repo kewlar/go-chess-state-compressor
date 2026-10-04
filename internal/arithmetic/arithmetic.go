@@ -79,13 +79,9 @@ func EncodeAdaptive(data []rune, occupancy uint64, frequencies map[rune]int) []b
 	idx := 0
 	for i := range 64 {
 		if occupancy&(1<<i) != 0 {
-			r := data[idx]
-			freqs2 := maps.Clone(freqs)
-			rank := i >> 3
-			if rank == 0 || rank == 7 {
-				freqs2['p'] = 0
-			}
+			freqs2 := adjustFrequencies(freqs, i)
 			intervals := FrequenciesToIntervals(freqs2)
+			r := data[idx]
 			interval.Mul(intervals[r])
 			idx++
 
@@ -103,13 +99,9 @@ func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]i
 	idx := 0
 	for square, occupied := range occupancy {
 		if occupied {
-			rank := square >> 3
-			piece := rune(0)
-			freqs2 := maps.Clone(freqs)
-			if rank == 0 || rank == 7 {
-				freqs2['p'] = 0
-			}
+			freqs2 := adjustFrequencies(freqs, square)
 			intervals := FrequenciesToIntervals(freqs2)
+			piece := rune(0)
 			for r, i := range intervals {
 				if i.Cover(x) {
 					piece = r
@@ -128,6 +120,18 @@ func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]i
 	}
 
 	return data
+}
+
+func adjustFrequencies(frequencies map[rune]int, square int) map[rune]int {
+	freqs := maps.Clone(frequencies)
+
+	// Pawns cannot be on home ranks.
+	rank := square >> 3
+	if rank == 0 || rank == 7 {
+		freqs['p'] = 0
+	}
+
+	return freqs
 }
 
 func updateFrequencies(piece rune, remaining int, frequencies map[rune]int) map[rune]int {
