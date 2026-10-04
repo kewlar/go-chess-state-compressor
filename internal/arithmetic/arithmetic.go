@@ -128,22 +128,35 @@ func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]i
 func adjustFrequencies(frequencies map[rune]int, square int, numPieces int, occupancy, color []bool, side rune, fullmove int, placedPieces []rune) map[rune]int {
 	freqs := maps.Clone(frequencies)
 
+	rank, file := square>>3, square&7
+	squareColor := (rank+file)&1 == 1
+
 	// Pawns cannot be on home ranks.
-	rank := square >> 3
 	if rank == 0 || rank == 7 {
 		freqs['p'] = 0
 	}
 
-	// Number of the piece to be placed.
-	pieceIdx := len(placedPieces)
+	pieceIdx := len(placedPieces) // Number of the piece to be placed.
 	pieceColor := color[pieceIdx]
 
-	// Counts of pieces (by type) placed by the side to be placed.
-	placedCounts := map[rune]int{}
-	for i, piece := range placedPieces {
-		if color[i] == pieceColor {
-			placedCounts[piece]++
+	placedCounts := map[rune]int{} // Counts of pieces (by type) placed by the side to be placed.
+	bishops := map[bool]bool{}
+	i, idx := 0, 0
+	for idx < len(placedPieces) {
+		for !occupancy[i] {
+			i++
 		}
+		if color[idx] == pieceColor {
+			piece := placedPieces[idx]
+			placedCounts[piece]++
+			if piece == 'b' {
+				rank, file := i>>3, i&7
+				bishopColor := (rank+file)&1 == 1
+				bishops[bishopColor] = true
+			}
+		}
+		i++
+		idx++
 	}
 
 	promotionPossible := fullmove >= 5 && numPieces < 32
@@ -164,7 +177,11 @@ func adjustFrequencies(frequencies map[rune]int, square int, numPieces int, occu
 		}
 	}
 
-	// TODO: If promotion couldn't happen, there cannot be two same-color Bishops on the same side.
+	// If promotion couldn't happen, there cannot be two same-color Bishops on the same side.
+	if !promotionPossible && bishops[squareColor] {
+		freqs['b'] = 0
+	}
+
 	// TODO: Side not to move cannot have their King in check.
 	// TODO: Kings cannot be within 1 square of one another.
 	// TODO: If castling is available, the only piece on the Rook square can be a Rook.
