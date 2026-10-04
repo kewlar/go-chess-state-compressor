@@ -9,9 +9,7 @@ import (
 )
 
 type ArithmeticAdaptiveCoder struct {
-	frequencies      map[rune]int
-	intervals        map[rune]*arithmetic.Interval
-	homeRowIntervals map[rune]*arithmetic.Interval
+	frequencies map[rune]int
 }
 
 func NewArithmeticAdaptiveCoder() *ArithmeticAdaptiveCoder {
@@ -23,19 +21,9 @@ func NewArithmeticAdaptiveCoder() *ArithmeticAdaptiveCoder {
 		'b': 4,
 		'n': 4,
 	}
-	homeRowFrequencies := map[rune]int{
-		'p': 0,
-		'k': 2,
-		'q': 2,
-		'r': 4,
-		'b': 4,
-		'n': 4,
-	}
 
 	return &ArithmeticAdaptiveCoder{
-		frequencies:      frequencies,
-		intervals:        arithmetic.FrequenciesToIntervals(frequencies),
-		homeRowIntervals: arithmetic.FrequenciesToIntervals(homeRowFrequencies),
+		frequencies: frequencies,
 	}
 }
 
