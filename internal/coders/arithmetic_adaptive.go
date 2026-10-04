@@ -60,6 +60,19 @@ func (c *ArithmeticAdaptiveCoder) FromFen(fen string) *bitfield.BitField {
 	bf.WriteInt(occupancy, 64)
 	bf.WriteInt(uint64(color), len(pieces))
 
+	// Side to move.
+	bf.WriteBool(state.SideToMove == 'w')
+	// Castling availability.
+	for _, option := range chess.CastlingOptions {
+		bf.WriteBool(state.Castling[option])
+	}
+	// En passant square.
+	bf.WriteInt(uint64(state.EnPassant), 7)
+	// Halfmove clock.
+	bf.WriteInt(uint64(state.Halfmove), 8)
+	// Fullmove number.
+	bf.WriteInt(uint64(state.Fullmove), 14)
+
 	// Arithmetic coding.
 	bits := arithmetic.EncodeAdaptive(pieces, occupancy, c.frequencies)
 
@@ -68,23 +81,6 @@ func (c *ArithmeticAdaptiveCoder) FromFen(fen string) *bitfield.BitField {
 	}
 	bf.WriteInt(uint64(len(bits)), bitsForArithmeticCodeLength)
 	bf.WriteBoolSlice(bits)
-
-	// Side to move.
-	bf.WriteBool(state.SideToMove == 'w')
-
-	// Castling availability.
-	for _, option := range chess.CastlingOptions {
-		bf.WriteBool(state.Castling[option])
-	}
-
-	// En passant square.
-	bf.WriteInt(uint64(state.EnPassant), 7)
-
-	// Halfmove clock.
-	bf.WriteInt(uint64(state.Halfmove), 8)
-
-	// Fullmove number.
-	bf.WriteInt(uint64(state.Fullmove), 14)
 
 	return bf
 }
@@ -104,11 +100,6 @@ func (c *ArithmeticAdaptiveCoder) ToFen(data *bitfield.BitField) string {
 	// Piece placement: colors.
 	colors := data.ReadBoolSlice(pieceCount)
 
-	// Piece placement: pieces.
-	l := int(data.ReadInt(bitsForArithmeticCodeLength))
-	bits := data.ReadBoolSlice(l)
-	pieces := arithmetic.DecodeAdaptive(bits, pieceCount, occupancy, c.frequencies)
-
 	// Side to move.
 	isWhite := data.ReadBool()
 	if isWhite {
@@ -116,20 +107,21 @@ func (c *ArithmeticAdaptiveCoder) ToFen(data *bitfield.BitField) string {
 	} else {
 		state.SideToMove = 'b'
 	}
-
 	// Castling availability.
 	for _, option := range chess.CastlingOptions {
 		state.Castling[option] = data.ReadBool()
 	}
-
 	// En passant square.
 	state.EnPassant = int(data.ReadInt(7))
-
 	// Halfmove clock.
 	state.Halfmove = int(data.ReadInt(8))
-
 	// Fullmove number.
 	state.Fullmove = int(data.ReadInt(14))
+
+	// Piece placement: pieces.
+	l := int(data.ReadInt(bitsForArithmeticCodeLength))
+	bits := data.ReadBoolSlice(l)
+	pieces := arithmetic.DecodeAdaptive(bits, pieceCount, occupancy, c.frequencies)
 
 	// Piece placement.
 	idx := 0
