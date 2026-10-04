@@ -74,7 +74,7 @@ func (c *ArithmeticAdaptiveCoder) FromFen(fen string) *bitfield.BitField {
 	bf.WriteInt(uint64(state.Fullmove), 14)
 
 	// Arithmetic coding.
-	bits := arithmetic.EncodeAdaptive(pieces, bitfield.IntToBoolSlice(occupancy, 64), c.frequencies, bitfield.IntToBoolSlice(uint64(color), len(pieces)), state.SideToMove, state.Fullmove, state.Castling)
+	bits := arithmetic.EncodeAdaptive(pieces, bitfield.IntToBoolSlice(occupancy, 64), c.frequencies, bitfield.IntToBoolSlice(uint64(color), len(pieces)), state)
 
 	if len(bits) > (1<<bitsForArithmeticCodeLength)-1 {
 		log.Fatalf("encoded data too long (%d bits)", len(bits))
@@ -116,7 +116,7 @@ func (c *ArithmeticAdaptiveCoder) ToFen(data *bitfield.BitField) string {
 	// Piece placement: pieces.
 	l := int(data.ReadInt(bitsForArithmeticCodeLength))
 	bits := data.ReadBoolSlice(l)
-	pieces := arithmetic.DecodeAdaptive(bits, pieceCount, occupancy, c.frequencies, colors, state.SideToMove, state.Fullmove, state.Castling)
+	pieces := arithmetic.DecodeAdaptive(bits, pieceCount, occupancy, c.frequencies, colors, state)
 
 	// Piece placement.
 	idx := 0
