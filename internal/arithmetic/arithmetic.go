@@ -140,20 +140,24 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 
 	placedCounts := map[rune]int{} // Counts of pieces (by type) placed by the side to be placed.
 	bishops := map[chess.Color]bool{}
-	i, idx := chess.Square(0), 0
+	kingSquare := chess.InvalidSquare
+	sq, idx := chess.Square(0), 0
 	for idx < len(placedPieces) {
-		for !occupancy[i] {
-			i++
+		for !occupancy[sq] {
+			sq++
 		}
+		piece := placedPieces[idx]
 		if color[idx] == pieceColor {
-			piece := placedPieces[idx]
 			placedCounts[piece]++
 			if piece == 'b' {
-				bishopColor := i.Color()
+				bishopColor := sq.Color()
 				bishops[bishopColor] = true
 			}
 		}
-		i++
+		if piece == 'k' {
+			kingSquare = sq
+		}
+		sq++
 		idx++
 	}
 
@@ -180,8 +184,22 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 		freqs['b'] = 0
 	}
 
+	// Kings cannot be within 1 square of one another.
+	if kingSquare.IsValid() {
+		deltaRank := square.Rank() - kingSquare.Rank()
+		deltaFile := square.File() - kingSquare.File()
+		if deltaRank < 0 {
+			deltaRank *= -1
+		}
+		if deltaFile < 0 {
+			deltaFile *= -1
+		}
+		if deltaRank <= 1 && deltaFile <= 1 {
+			freqs['k'] = 0
+		}
+	}
+
 	// TODO: Side not to move cannot have their King in check.
-	// TODO: Kings cannot be within 1 square of one another.
 	// TODO: If castling is available, the only piece on the Rook square can be a Rook.
 
 	return freqs
