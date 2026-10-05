@@ -234,6 +234,10 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 		freqs['k'] = 1
 		freqs['q'] = 0
 	}
+	// If a side can castle, a King cannot be anywhere else than on the King's square.
+	if pieceColor == chess.White && whiteCanCastle && sqs != "e1" || pieceColor == chess.Black && blackCanCastle && sqs != "e8" {
+		freqs['k'] = 0
+	}
 
 	// Side not to move cannot have their King in check.
 	sideNotToMove := state.SideToMove.Other()
