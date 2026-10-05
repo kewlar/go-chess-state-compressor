@@ -246,13 +246,9 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 		isAttacking := false
 		board := buildBoard(occupancy, color, placedPieces)
 		for sq, piece := range board {
-			if piece != 0 {
-				// pt := piece | 32
-				pc := chess.Color(piece&32 == 0)
-				if pc == state.SideToMove && chess.Attacks(board, chess.Square(sq), square) {
-					isAttacking = true
-					break
-				}
+			if piece.IsValid() && piece.Color() == state.SideToMove && chess.Attacks(board, chess.Square(sq), square) {
+				isAttacking = true
+				break
 			}
 		}
 
