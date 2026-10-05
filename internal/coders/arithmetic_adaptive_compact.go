@@ -67,8 +67,15 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 		bf.WriteBool(bool(state.SideToMove))
 	}
 	// Castling availability.
+	hasCastling := false
 	for _, option := range chess.CastlingOptions {
-		bf.WriteBool(state.Castling[option])
+		hasCastling = hasCastling || state.Castling[option]
+	}
+	bf.WriteBool(hasCastling)
+	if hasCastling {
+		for _, option := range chess.CastlingOptions {
+			bf.WriteBool(state.Castling[option])
+		}
 	}
 	// En passant square.
 	if state.EnPassant.IsValid() {
@@ -122,8 +129,11 @@ func (c *ArithmeticAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
 		state.SideToMove = chess.Color(data.ReadBool())
 	}
 	// Castling availability.
-	for _, option := range chess.CastlingOptions {
-		state.Castling[option] = data.ReadBool()
+	hasCastling := data.ReadBool()
+	if hasCastling {
+		for _, option := range chess.CastlingOptions {
+			state.Castling[option] = data.ReadBool()
+		}
 	}
 	// En passant square.
 	hasEnPassant := data.ReadBool()
