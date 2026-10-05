@@ -6,6 +6,7 @@ type Square int
 // InvalidSquare is a virtual scale used for cases where square is not existing, i.e. en passant square when there is no en passant.
 const InvalidSquare Square = 64
 
+// NewSquareFromRankAndFile returns a Square at given rank and file.
 func NewSquareFromRankAndFile(rank, file int) Square {
 	return Square((7-rank)<<3 + file&7)
 }
