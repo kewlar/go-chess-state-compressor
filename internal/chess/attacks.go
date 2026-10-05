@@ -82,15 +82,3 @@ func sign(x int) int {
 	}
 	return 0
 }
-
-// boardToString renders a board into string for printing. Used for debugging.
-func boardToString(board Board) string {
-	out := ""
-	for i := range 64 {
-		out += " " + board[i].String()
-		if i&7 == 7 {
-			out += "\n"
-		}
-	}
-	return out
-}
