@@ -64,10 +64,9 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 	}
 	// En passant square.
 	bf.WriteInt(uint64(state.EnPassant), 7)
-	// Halfmove clock.
-	bf.WriteInt(uint64(state.Halfmove), 8)
-	// Fullmove number.
-	bf.WriteInt(uint64(state.Fullmove), 14)
+	// Halfmove clock & fullmove number.
+	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
+	bf.WriteInt(uint64(moveNum), 21)
 
 	// Arithmetic coding.
 	bits := arithmetic.EncodeAdaptive(pieces, bitfield.IntToBoolSlice(occupancy, 64), c.frequencies, bitfield.IntToBoolSlice(uint64(color), len(pieces)), state)
@@ -104,10 +103,9 @@ func (c *ArithmeticAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
 	}
 	// En passant square.
 	state.EnPassant = chess.Square(data.ReadInt(7))
-	// Halfmove clock.
-	state.Halfmove = int(data.ReadInt(8))
-	// Fullmove number.
-	state.Fullmove = int(data.ReadInt(14))
+	// Halfmove clock & fullMove number.
+	moveNum := int(data.ReadInt(21))
+	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 
 	// Piece placement: pieces.
 	l := int(data.ReadInt(bitsForArithmeticCodeLength))
