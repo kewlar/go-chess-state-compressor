@@ -1,6 +1,10 @@
 package chess
 
-import "fmt"
+import (
+	"fmt"
+
+	"example.com/go-chess/internal/tools"
+)
 
 // Attacks returns true if the piece in the 'from' square can attack the piece on the 'target' square'.
 func Attacks(board Board, from, target Square) bool {
@@ -11,7 +15,7 @@ func Attacks(board Board, from, target Square) bool {
 
 	dr := target.Rank() - from.Rank()
 	df := target.File() - from.File()
-	adr, adf := abs(dr), abs(df)
+	adr, adf := tools.Abs(dr), tools.Abs(df)
 	switch piece | 32 {
 	case 'k':
 		if adr <= 1 && adf <= 1 {
@@ -51,7 +55,7 @@ func Attacks(board Board, from, target Square) bool {
 func rayHits(board Board, from, target Square) bool {
 	dr := target.Rank() - from.Rank()
 	df := target.File() - from.File()
-	ur, uf := sign(dr), sign(df)
+	ur, uf := tools.Sign(dr), tools.Sign(df)
 	r, f := from.Rank()+ur, from.File()+uf
 	for !(r == target.Rank() && f == target.File()) {
 		square := NewSquareFromRankAndFile(r, f)
@@ -62,23 +66,4 @@ func rayHits(board Board, from, target Square) bool {
 		f += uf
 	}
 	return true
-}
-
-// abs returns the absolute value of an integer number x.
-func abs(x int) int {
-	if x < 0 {
-		return -x
-	}
-	return x
-}
-
-// sign returns the sign (-1, 0, or 1) of an integer number x.
-func sign(x int) int {
-	if x < 0 {
-		return -1
-	}
-	if x > 0 {
-		return 1
-	}
-	return 0
 }
