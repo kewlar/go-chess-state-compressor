@@ -63,7 +63,12 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 		bf.WriteBool(state.Castling[option])
 	}
 	// En passant square.
-	bf.WriteInt(uint64(state.EnPassant), 7)
+	if state.EnPassant.IsValid() {
+		bf.WriteBool(true)
+		bf.WriteInt(uint64(state.EnPassant), 3) // Only the lowest 3 bits -- the file -- are necessary.
+	} else {
+		bf.WriteBool(false)
+	}
 	// Halfmove clock & fullmove number.
 	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
 	bf.WriteInt(uint64(moveNum), 21)
@@ -102,7 +107,15 @@ func (c *ArithmeticAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
 		state.Castling[option] = data.ReadBool()
 	}
 	// En passant square.
-	state.EnPassant = chess.Square(data.ReadInt(7))
+	hasEnPassant := data.ReadBool()
+	if hasEnPassant {
+		file := int(data.ReadInt(3))
+		rank := 2
+		if state.SideToMove == chess.White {
+			rank = 5
+		}
+		state.EnPassant = chess.NewSquareFromRankAndFile(rank, file)
+	}
 	// Halfmove clock & fullMove number.
 	moveNum := int(data.ReadInt(21))
 	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)

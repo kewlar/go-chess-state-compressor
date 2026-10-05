@@ -29,7 +29,8 @@ var (
 
 func NewState() *State {
 	return &State{
-		Castling: map[rune]bool{},
+		Castling:  map[rune]bool{},
+		EnPassant: InvalidSquare,
 	}
 }
 
