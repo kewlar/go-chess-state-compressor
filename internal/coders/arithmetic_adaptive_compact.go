@@ -52,6 +52,26 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 
 	bf := &bitfield.BitField{}
 
+	// Castling availability.
+	hasCastling := false
+	for _, option := range chess.CastlingOptions {
+		hasCastling = hasCastling || state.Castling[option]
+	}
+	bf.WriteBool(hasCastling)
+	if hasCastling {
+		for _, option := range chess.CastlingOptions {
+			bf.WriteBool(state.Castling[option])
+		}
+	}
+
+	// En passant square.
+	if state.EnPassant.IsValid() {
+		bf.WriteBool(true)
+		bf.WriteInt(uint64(state.EnPassant), 3) // Only the lowest 3 bits -- the file -- are necessary.
+	} else {
+		bf.WriteBool(false)
+	}
+
 	// Encode side to move in occupancy data, if possible.
 	occupancyOut := occupancy
 	if len(pieces) < 32 && state.SideToMove == chess.Black {
@@ -65,24 +85,6 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 	// Side to move.
 	if len(pieces) == 32 {
 		bf.WriteBool(bool(state.SideToMove))
-	}
-	// Castling availability.
-	hasCastling := false
-	for _, option := range chess.CastlingOptions {
-		hasCastling = hasCastling || state.Castling[option]
-	}
-	bf.WriteBool(hasCastling)
-	if hasCastling {
-		for _, option := range chess.CastlingOptions {
-			bf.WriteBool(state.Castling[option])
-		}
-	}
-	// En passant square.
-	if state.EnPassant.IsValid() {
-		bf.WriteBool(true)
-		bf.WriteInt(uint64(state.EnPassant), 3) // Only the lowest 3 bits -- the file -- are necessary.
-	} else {
-		bf.WriteBool(false)
 	}
 	// Halfmove clock & fullmove number.
 	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
@@ -102,6 +104,20 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 
 func (c *ArithmeticAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
 	state := chess.NewState()
+
+	// Castling availability.
+	hasCastling := data.ReadBool()
+	if hasCastling {
+		for _, option := range chess.CastlingOptions {
+			state.Castling[option] = data.ReadBool()
+		}
+	}
+	// En passant square.
+	hasEnPassant := data.ReadBool()
+	enPassantFile := -1
+	if hasEnPassant {
+		enPassantFile = int(data.ReadInt(3))
+	}
 
 	// Piece placement: occupancy.
 	occupancy := data.ReadBoolSlice(64)
@@ -128,23 +144,16 @@ func (c *ArithmeticAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
 	if pieceCount == 32 {
 		state.SideToMove = chess.Color(data.ReadBool())
 	}
-	// Castling availability.
-	hasCastling := data.ReadBool()
-	if hasCastling {
-		for _, option := range chess.CastlingOptions {
-			state.Castling[option] = data.ReadBool()
-		}
-	}
-	// En passant square.
-	hasEnPassant := data.ReadBool()
+
+	// Finish decoding en passant square.
 	if hasEnPassant {
-		file := int(data.ReadInt(3))
 		rank := 2
 		if state.SideToMove == chess.White {
 			rank = 5
 		}
-		state.EnPassant = chess.NewSquareFromRankAndFile(rank, file)
+		state.EnPassant = chess.NewSquareFromRankAndFile(rank, enPassantFile)
 	}
+
 	// Halfmove clock & fullMove number.
 	moveNum := int(data.ReadInt(21))
 	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
