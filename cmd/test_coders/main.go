@@ -29,6 +29,7 @@ func main() {
 		coders.NewArithmeticCoder(),
 		coders.NewArithmeticByCountCoder(),
 		coders.NewArithmeticAdaptiveCoder(),
+		coders.NewArithmeticAdaptiveCompactCoder(),
 	}
 
 	// Prepare to read input data.
