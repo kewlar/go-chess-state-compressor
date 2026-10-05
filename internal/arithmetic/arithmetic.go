@@ -1,6 +1,7 @@
 package arithmetic
 
 import (
+	"fmt"
 	"maps"
 	"slices"
 
@@ -85,7 +86,7 @@ func EncodeAdaptive(data []rune, occupancy []bool, frequencies map[rune]int, col
 			intervals := FrequenciesToIntervals(freqs2)
 			r := data[idx]
 			if freqs2[r] == 0 {
-				panic("didn't expect this piece at this position")
+				panic(fmt.Sprintf("didn't expect '%s' at square %s", string(r), chess.Square(i).String()))
 			}
 			interval.Mul(intervals[r])
 			idx++
@@ -140,6 +141,10 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 
 	placedCounts := map[rune]int{} // Counts of pieces (by type) placed by the side to be placed.
 	bishops := map[chess.Color]bool{}
+	kings := map[chess.Color]chess.Square{
+		chess.White: chess.InvalidSquare,
+		chess.Black: chess.InvalidSquare,
+	}
 	hasKing := false
 	kingSquare := chess.InvalidSquare
 	sq, idx := chess.Square(0), 0
@@ -158,6 +163,7 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 			}
 		}
 		if piece == 'k' {
+			kings[chess.Color(color[idx])] = sq
 			kingSquare = sq
 		}
 		sq++
@@ -219,7 +225,39 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 		freqs['q'] = 0
 	}
 
-	// TODO: Side not to move cannot have their King in check.
+	// Side not to move cannot have their King in check.
+	sideNotToMove := state.SideToMove.Other()
+	if pieceColor == sideNotToMove && !kings[pieceColor].IsValid() {
+		// Is anything by SideToMove on the board attacking our target square?
+		isAttacking := false
+		board := buildBoard(occupancy, color, placedPieces)
+		for sq, piece := range board {
+			if piece != 0 {
+				// pt := piece | 32
+				pc := chess.Color(piece&32 == 0)
+				if pc == state.SideToMove && chess.Attacks(board, chess.Square(sq), square) {
+					isAttacking = true
+					break
+				}
+			}
+		}
+
+		if isAttacking { // square is attacked by state.SideToMove
+			freqs['k'] = 0
+		}
+	} else if pieceColor == state.SideToMove && kings[sideNotToMove].IsValid() {
+		// Side to move cannot be checking other side's King.
+		board := buildBoard(occupancy, color, placedPieces)
+		for _, piece := range []rune{'r', 'b', 'n', 'q', 'p'} {
+			if pieceColor == chess.White {
+				piece &= 0b1101_1111
+			}
+			board2 := boardWith(board, piece, square)
+			if chess.Attacks(board2, square, kings[sideNotToMove]) {
+				freqs[piece] = 0
+			}
+		}
+	}
 
 	return freqs
 }
@@ -247,4 +285,34 @@ func updateFrequencies(piece rune, remaining int, frequencies map[rune]int) map[
 	}
 
 	return freqs
+}
+
+func buildBoard(occupancy, color []bool, placedPieces []rune) [64]rune {
+	board := [64]rune{}
+	sq := 0
+	idx := 0
+	for idx < len(placedPieces) {
+		for !occupancy[sq] {
+			sq++
+		}
+		piece := placedPieces[idx]
+		pColor := chess.Color(color[idx])
+		if pColor == chess.White {
+			piece &= 0b1101_1111
+		}
+		board[sq] = piece
+		sq++
+		idx++
+	}
+
+	return board
+}
+
+func boardWith(board [64]rune, piece rune, square chess.Square) [64]rune {
+	board2 := [64]rune{}
+	for i := range 64 {
+		board2[i] = board[i]
+	}
+	board2[square] = piece
+	return board2
 }
