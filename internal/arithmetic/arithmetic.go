@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"example.com/go-chess/internal/chess"
+	"example.com/go-chess/internal/tools"
 )
 
 func FrequenciesToIntervals(frequencies map[rune]int) map[rune]*Interval {
@@ -199,18 +200,9 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 	}
 
 	// Kings cannot be within 1 square of one another.
-	if kingSquare.IsValid() {
-		deltaRank := square.Rank() - kingSquare.Rank()
-		deltaFile := square.File() - kingSquare.File()
-		if deltaRank < 0 {
-			deltaRank *= -1
-		}
-		if deltaFile < 0 {
-			deltaFile *= -1
-		}
-		if deltaRank <= 1 && deltaFile <= 1 {
-			freqs['k'] = 0
-		}
+	if kingSquare.IsValid() &&
+		tools.Abs(square.Rank()-kingSquare.Rank()) <= 1 && tools.Abs(square.File()-kingSquare.File()) <= 1 {
+		freqs['k'] = 0
 	}
 
 	// If castling is available, the only piece on the Rook square can be a Rook.
