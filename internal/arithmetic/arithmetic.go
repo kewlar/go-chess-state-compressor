@@ -215,6 +215,8 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 
 	// If castling is available, the only piece on the Rook square can be a Rook.
 	sqs := square.String()
+	whiteCanCastle := state.Castling['K'] || state.Castling['Q']
+	blackCanCastle := state.Castling['k'] || state.Castling['q']
 	if (sqs == "a1" && state.Castling['Q'] || sqs == "h1" && state.Castling['K']) ||
 		(sqs == "a8" && state.Castling['q'] || sqs == "h8" && state.Castling['k']) {
 		freqs['r'] = 1
@@ -222,6 +224,14 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 		freqs['b'] = 0
 		freqs['p'] = 0
 		freqs['k'] = 0
+		freqs['q'] = 0
+	} else if sqs == "e1" && whiteCanCastle || sqs == "e8" && blackCanCastle {
+		// If castling is available, the only piece on the King square can be a King.
+		freqs['r'] = 0
+		freqs['n'] = 0
+		freqs['b'] = 0
+		freqs['p'] = 0
+		freqs['k'] = 1
 		freqs['q'] = 0
 	}
 
