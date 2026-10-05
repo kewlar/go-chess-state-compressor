@@ -8,7 +8,7 @@ import (
 )
 
 type State struct {
-	Board      [64]rune
+	Board      Board
 	SideToMove Color // 'w' or 'b'
 	Castling   map[rune]bool
 	EnPassant  Square // 0..63, or InvalidSquare
@@ -55,19 +55,18 @@ func ParseFen(fen string) (*State, error) {
 			continue
 		}
 
-		pieceType := rune(int(r) | 32)
-		if !strings.ContainsRune("prkqbn", pieceType) {
+		piece := Piece(r)
+		if !piece.IsValid() {
 			return nil, fmt.Errorf("unexpected piece %q in fen %s", r, fen)
 		}
 
-		isWhite := int(r)&32 == 0
-		if isWhite {
+		if piece.Color() == White {
 			countWhite++
 		} else {
 			countBlack++
 		}
 
-		state.Board[(row<<3)|col] = r
+		state.Board[NewSquareFromRankAndFile(7-row, col)] = piece
 
 		col++
 	}
@@ -154,7 +153,7 @@ func (state *State) ToFen() string {
 				fen.WriteRune('0' + rune(empty))
 				empty = 0
 			}
-			fen.WriteRune(piece)
+			fen.WriteRune(rune(piece))
 			idx++
 		} else {
 			empty++

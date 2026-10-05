@@ -47,20 +47,17 @@ func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
 	// Piece placement
 	occupancy := uint64(0)
 	color := uint32(0)
-	pieces := []byte{}
-	for cell, r := range state.Board {
-		if r == 0 {
+	pieces := []rune{}
+	for cell, piece := range state.Board {
+		if piece.IsEmpty() {
 			continue
 		}
 
-		pieceType := rune(int(r) | 32)
-
 		occupancy |= 1 << cell
-
-		isWhite := int(r)&32 == 0
-		if isWhite {
+		if piece.Color() == chess.White {
 			color |= 1 << len(pieces)
 		}
+		pieceType := piece.Type()
 
 		if enPassantPawn == chess.Square(cell) && pieceType == 'p' {
 			pieceType = 'P' // En passant pawn.
@@ -73,7 +70,7 @@ func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
 				}
 			}
 		}
-		pieces = append(pieces, c.pieceCodes[pieceType])
+		pieces = append(pieces, rune(pieceType))
 	}
 
 	// GENERATE BITS
@@ -84,7 +81,7 @@ func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
 	bf.WriteInt(occupancy, 64)
 	bf.WriteInt(uint64(color), len(pieces))
 	for _, piece := range pieces {
-		bf.WriteInt(uint64(piece), 3)
+		bf.WriteInt(uint64(c.pieceCodes[piece]), 3)
 	}
 
 	// Side to move.
@@ -152,10 +149,7 @@ func (c *BinaryFenCompactCoder) ToFen(data *bitfield.BitField) string {
 					}
 				}
 			}
-			if color { // White
-				piece &= 0b1101_1111
-			}
-			state.Board[i] = piece
+			state.Board[i] = chess.NewPiece(piece, chess.Color(color))
 			idx++
 		}
 	}

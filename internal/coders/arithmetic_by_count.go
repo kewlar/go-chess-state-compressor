@@ -286,20 +286,16 @@ func (c *ArithmeticByCountCoder) FromFen(fen string) *bitfield.BitField {
 	occupancy := uint64(0)
 	color := uint32(0)
 	pieces := []rune{}
-	for cell, r := range state.Board {
-		if r == 0 {
+	for cell, piece := range state.Board {
+		if piece.IsEmpty() {
 			continue
 		}
 
-		pieceType := rune(int(r) | 32)
-
 		occupancy |= 1 << cell
-
-		isWhite := int(r)&32 == 0
-		if isWhite {
+		if piece.Color() == chess.White {
 			color |= 1 << len(pieces)
 		}
-		pieces = append(pieces, pieceType)
+		pieces = append(pieces, rune(piece.Type()))
 	}
 
 	bf := &bitfield.BitField{}
@@ -378,11 +374,7 @@ func (c *ArithmeticByCountCoder) ToFen(data *bitfield.BitField) string {
 	idx := 0
 	for i, occupied := range occupancy {
 		if occupied {
-			piece, color := pieces[idx], colors[idx]
-			if color { // White
-				piece &= 0b1101_1111
-			}
-			state.Board[i] = piece
+			state.Board[i] = chess.NewPiece(pieces[idx], chess.Color(colors[idx]))
 			idx++
 		}
 	}

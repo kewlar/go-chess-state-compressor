@@ -39,21 +39,17 @@ func (c *HuffmanCoder) FromFen(fen string) *bitfield.BitField {
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy := uint64(0)
 	color := uint32(0)
-	pieces := []rune{}
-	for cell, r := range state.Board {
-		if r == 0 {
+	pieces := []chess.Piece{}
+	for cell, piece := range state.Board {
+		if piece.IsEmpty() {
 			continue
 		}
 
-		pieceType := rune(int(r) | 32)
-
 		occupancy |= 1 << cell
-
-		isWhite := int(r)&32 == 0
-		if isWhite {
+		if piece.Color() == chess.White {
 			color |= 1 << len(pieces)
 		}
-		pieces = append(pieces, pieceType)
+		pieces = append(pieces, piece)
 	}
 
 	bf := &bitfield.BitField{}
@@ -62,7 +58,7 @@ func (c *HuffmanCoder) FromFen(fen string) *bitfield.BitField {
 	bf.WriteInt(occupancy, 64)
 	bf.WriteInt(uint64(color), len(pieces))
 	for _, piece := range pieces {
-		bf.WriteBoolSlice(c.huffmanDict[piece].Bits)
+		bf.WriteBoolSlice(c.huffmanDict[rune(piece.Type())].Bits)
 	}
 
 	// Side to move.
@@ -133,11 +129,7 @@ func (c *HuffmanCoder) ToFen(data *bitfield.BitField) string {
 	idx := 0
 	for i, occupied := range occupancy {
 		if occupied {
-			piece, color := pieces[idx], colors[idx]
-			if color { // White
-				piece &= 0b1101_1111
-			}
-			state.Board[i] = piece
+			state.Board[i] = chess.NewPiece(pieces[idx], chess.Color(colors[idx]))
 			idx++
 		}
 	}

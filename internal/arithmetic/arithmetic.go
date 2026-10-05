@@ -248,13 +248,11 @@ func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 	} else if pieceColor == state.SideToMove && kings[sideNotToMove].IsValid() {
 		// Side to move cannot be checking other side's King.
 		board := buildBoard(occupancy, color, placedPieces)
-		for _, piece := range []rune{'r', 'b', 'n', 'q', 'p'} {
-			if pieceColor == chess.White {
-				piece &= 0b1101_1111
-			}
+		for _, pieceType := range []rune{'r', 'b', 'n', 'q', 'p'} {
+			piece := chess.NewPiece(pieceType, pieceColor)
 			board2 := boardWith(board, piece, square)
 			if chess.Attacks(board2, square, kings[sideNotToMove]) {
-				freqs[piece] = 0
+				freqs[pieceType] = 0
 			}
 		}
 	}
@@ -287,20 +285,15 @@ func updateFrequencies(piece rune, remaining int, frequencies map[rune]int) map[
 	return freqs
 }
 
-func buildBoard(occupancy, color []bool, placedPieces []rune) [64]rune {
-	board := [64]rune{}
+func buildBoard(occupancy, color []bool, placedPieces []rune) chess.Board {
+	board := chess.Board{}
 	sq := 0
 	idx := 0
 	for idx < len(placedPieces) {
 		for !occupancy[sq] {
 			sq++
 		}
-		piece := placedPieces[idx]
-		pColor := chess.Color(color[idx])
-		if pColor == chess.White {
-			piece &= 0b1101_1111
-		}
-		board[sq] = piece
+		board[sq] = chess.NewPiece(placedPieces[idx], chess.Color(color[idx]))
 		sq++
 		idx++
 	}
@@ -308,8 +301,8 @@ func buildBoard(occupancy, color []bool, placedPieces []rune) [64]rune {
 	return board
 }
 
-func boardWith(board [64]rune, piece rune, square chess.Square) [64]rune {
-	board2 := [64]rune{}
+func boardWith(board chess.Board, piece chess.Piece, square chess.Square) chess.Board {
+	board2 := chess.Board{}
 	for i := range 64 {
 		board2[i] = board[i]
 	}

@@ -3,7 +3,7 @@ package chess
 import "fmt"
 
 // Attacks returns true if the piece in the 'from' square can attack the piece on the 'target' square'.
-func Attacks(board [64]rune, from, target Square) bool {
+func Attacks(board Board, from, target Square) bool {
 	piece := board[from]
 	if piece == 0 {
 		return false
@@ -48,7 +48,7 @@ func Attacks(board [64]rune, from, target Square) bool {
 
 // rayHits returns true if a piece on 'from' square has a line-of-sight visibility to 'target' square without any obstacles.
 // WARNING: This function doesn't check if it's actually possible to hit the target square, and may loop forever.
-func rayHits(board [64]rune, from, target Square) bool {
+func rayHits(board Board, from, target Square) bool {
 	dr := target.Rank() - from.Rank()
 	df := target.File() - from.File()
 	ur, uf := sign(dr), sign(df)
@@ -84,14 +84,10 @@ func sign(x int) int {
 }
 
 // boardToString renders a board into string for printing. Used for debugging.
-func boardToString(board [64]rune) string {
+func boardToString(board Board) string {
 	out := ""
 	for i := range 64 {
-		if board[i] == 0 {
-			out += " ."
-		} else {
-			out += " " + string(board[i])
-		}
+		out += " " + board[i].String()
 		if i&7 == 7 {
 			out += "\n"
 		}
