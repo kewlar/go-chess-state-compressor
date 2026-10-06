@@ -18,7 +18,7 @@ type State struct {
 
 const (
 	MaxHalfmove = 150
-	MaxFullmove = 8848
+	MaxFullmove = 8849
 )
 
 var (
