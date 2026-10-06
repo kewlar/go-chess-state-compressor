@@ -52,6 +52,10 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 
 	bf := &bitfield.BitField{}
 
+	// Halfmove clock & fullmove number.
+	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
+	bf.WriteInt(uint64(moveNum), 21)
+
 	// Castling availability.
 	hasCastling := false
 	for _, option := range chess.CastlingOptions {
@@ -86,9 +90,6 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 	if len(pieces) == 32 {
 		bf.WriteBool(bool(state.SideToMove))
 	}
-	// Halfmove clock & fullmove number.
-	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
-	bf.WriteInt(uint64(moveNum), 21)
 
 	// Arithmetic coding.
 	bits := arithmetic.EncodeAdaptive(pieces, bitfield.IntToBoolSlice(occupancy, 64), c.frequencies, bitfield.IntToBoolSlice(uint64(color), len(pieces)), state)
@@ -104,6 +105,10 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 
 func (c *ArithmeticAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
 	state := chess.NewState()
+
+	// Halfmove clock & fullMove number.
+	moveNum := int(data.ReadInt(21))
+	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 
 	// Castling availability.
 	hasCastling := data.ReadBool()
@@ -153,10 +158,6 @@ func (c *ArithmeticAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
 		}
 		state.EnPassant = chess.NewSquareFromRankAndFile(rank, enPassantFile)
 	}
-
-	// Halfmove clock & fullMove number.
-	moveNum := int(data.ReadInt(21))
-	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 
 	// Piece placement: pieces.
 	l := int(data.ReadInt(bitsForArithmeticCodeLength))
