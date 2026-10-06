@@ -11,6 +11,20 @@ const (
 	Rook   Piece = 'r'
 	Bishop Piece = 'b'
 	Knight Piece = 'n'
+
+	BlackPawn   Piece = 'p'
+	BlackKing   Piece = 'k'
+	BlackQueen  Piece = 'q'
+	BlackRook   Piece = 'r'
+	BlackBishop Piece = 'b'
+	BlackKnight Piece = 'n'
+
+	WhitePawn   Piece = 'P'
+	WhiteKing   Piece = 'K'
+	WhiteQueen  Piece = 'Q'
+	WhiteRook   Piece = 'R'
+	WhiteBishop Piece = 'B'
+	WhiteKnight Piece = 'N'
 )
 
 func NewPiece(pieceType rune, color Color) Piece {
