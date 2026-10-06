@@ -32,6 +32,15 @@ func (c *ArithmeticAdaptiveCompactCoder) Name() string {
 	return "Arithmetic (adaptive, compact)"
 }
 
+func findMatchingMoveIndex(board chess.Board, moves []chess.Move) int {
+	for i, m := range moves {
+		if board[m.From].IsEmpty() && board[m.To].IsOccupied() {
+			return i
+		}
+	}
+	return -1
+}
+
 func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField {
 	state, _ := chess.ParseFen(fen)
 
@@ -43,20 +52,14 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 		return bf
 	}
 
-	// Encode board after first move
+	// Encode the board after first move by White
 	if state.Fullmove == 1 && state.SideToMove == chess.Black {
 		bf.WriteInt(1, 21) // moveNum
-		move := -1
-		for i, m := range chess.FirstWhiteMoves() {
-			if state.Board[m.From].IsEmpty() && state.Board[m.To].IsOccupied() {
-				move = i
-				break
-			}
-		}
-		if move == -1 { // Not found.
+		whiteMove := findMatchingMoveIndex(state.Board, chess.FirstWhiteMoves())
+		if whiteMove == -1 { // Not found.
 			panic("move not found")
 		}
-		bf.WriteInt(uint64(move), 5)
+		bf.WriteInt(uint64(whiteMove), 5)
 		return bf
 	}
 
