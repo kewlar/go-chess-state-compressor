@@ -6,6 +6,7 @@ import (
 	"example.com/go-chess/internal/arithmetic"
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
+	"example.com/go-chess/internal/tools"
 )
 
 type ArithmeticAdaptiveCompactCoder struct {
@@ -39,6 +40,23 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 	// Encode starting position.
 	if state.Fullmove == 1 && state.SideToMove == chess.White {
 		bf.WriteInt(0, 21) // moveNum
+		return bf
+	}
+
+	// Encode board after first move
+	if state.Fullmove == 1 && state.SideToMove == chess.Black {
+		bf.WriteInt(1, 21) // moveNum
+		move := -1
+		for i, m := range chess.FirstWhiteMoves() {
+			if state.Board[m.From].IsEmpty() && state.Board[m.To].IsOccupied() {
+				move = i
+				break
+			}
+		}
+		if move == -1 { // Not found.
+			panic("move not found")
+		}
+		bf.WriteInt(uint64(move), 5)
 		return bf
 	}
 
@@ -114,10 +132,23 @@ func (c *ArithmeticAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
 
 	// Halfmove clock & fullMove number.
 	moveNum := int(data.ReadInt(21))
-	if moveNum == 0 {
+	switch moveNum {
+	case 0:
 		state = chess.NewStartingState()
-	} else {
-
+	case 1:
+		num := int(data.ReadInt(5))
+		state = chess.NewStartingState()
+		move := chess.FirstWhiteMoves()[num]
+		state.Board[move.To] = state.Board[move.From]
+		state.Board[move.From] = chess.Empty
+		if state.Board[move.To].Type() == chess.Pawn && tools.Abs(move.From.Rank()-move.To.Rank()) == 2 {
+			state.EnPassant = chess.NewSquareFromRankAndFile((move.From.Rank()+move.To.Rank())/2, move.To.File())
+		}
+		if state.Board[move.To].Type() != chess.Pawn {
+			state.Halfmove++
+		}
+		state.SideToMove = chess.Black
+	default:
 		state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 
 		// Castling availability.

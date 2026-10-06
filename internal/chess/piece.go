@@ -39,6 +39,10 @@ func (p Piece) IsEmpty() bool {
 	return p == Empty
 }
 
+func (p Piece) IsOccupied() bool {
+	return p != Empty
+}
+
 func (p Piece) IsValid() bool {
 	t := p.Type()
 	return p.IsEmpty() || t == Pawn || t == King || t == Queen || t == Rook || t == Bishop || t == Knight
