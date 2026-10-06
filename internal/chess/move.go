@@ -23,3 +23,23 @@ func FirstWhiteMoves() []Move {
 
 	return moves
 }
+
+func FirstBlackMoves() []Move {
+	moves := []Move{}
+	for file := range 8 {
+		// Possible first Pawn moves.
+		moves = append(moves,
+			Move{NewSquareFromRankAndFile(6, file), NewSquareFromRankAndFile(4, file)},
+			Move{NewSquareFromRankAndFile(6, file), NewSquareFromRankAndFile(5, file)},
+		)
+	}
+	// Possible first Knight moves.
+	moves = append(moves,
+		Move{NewSquareFromRankAndFile(7, 1), NewSquareFromRankAndFile(5, 0)},
+		Move{NewSquareFromRankAndFile(7, 1), NewSquareFromRankAndFile(5, 2)},
+		Move{NewSquareFromRankAndFile(7, 6), NewSquareFromRankAndFile(5, 5)},
+		Move{NewSquareFromRankAndFile(7, 6), NewSquareFromRankAndFile(5, 7)},
+	)
+
+	return moves
+}

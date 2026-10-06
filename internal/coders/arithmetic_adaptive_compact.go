@@ -63,6 +63,22 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 		return bf
 	}
 
+	// Encode the board after first move by Black
+	if state.Fullmove == 2 && state.SideToMove == chess.White {
+		bf.WriteInt(2, 21) // moveNum
+		whiteMove := findMatchingMoveIndex(state.Board, chess.FirstWhiteMoves())
+		if whiteMove == -1 { // Not found.
+			panic("move not found")
+		}
+		blackMove := findMatchingMoveIndex(state.Board, chess.FirstBlackMoves())
+		if blackMove == -1 { // Not found.
+			panic("move not found")
+		}
+
+		bf.WriteInt(uint64(whiteMove*20+blackMove), 9)
+		return bf
+	}
+
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy := uint64(0)
 	color := uint32(0)
@@ -151,6 +167,38 @@ func (c *ArithmeticAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
 			state.Halfmove++
 		}
 		state.SideToMove = chess.Black
+	case 2:
+		num := int(data.ReadInt(9))
+		whiteMove, blackMove := num/20, num%20
+
+		state = chess.NewStartingState()
+		// Apply move by White.
+		move := chess.FirstWhiteMoves()[whiteMove]
+		state.Board[move.To] = state.Board[move.From]
+		state.Board[move.From] = chess.Empty
+		if state.Board[move.To].Type() == chess.Pawn && tools.Abs(move.From.Rank()-move.To.Rank()) == 2 {
+			state.EnPassant = chess.NewSquareFromRankAndFile((move.From.Rank()+move.To.Rank())/2, move.To.File())
+		}
+		if state.Board[move.To].Type() != chess.Pawn {
+			state.Halfmove++
+		}
+		// Apply move by Black.
+		move = chess.FirstBlackMoves()[blackMove]
+		state.Board[move.To] = state.Board[move.From]
+		state.Board[move.From] = chess.Empty
+		if state.Board[move.To].Type() == chess.Pawn && tools.Abs(move.From.Rank()-move.To.Rank()) == 2 {
+			state.EnPassant = chess.NewSquareFromRankAndFile((move.From.Rank()+move.To.Rank())/2, move.To.File())
+		} else {
+			state.EnPassant = chess.InvalidSquare
+		}
+		if state.Board[move.To].Type() != chess.Pawn {
+			state.Halfmove++
+		} else {
+			state.Halfmove = 0
+		}
+
+		state.Fullmove = 2
+		state.SideToMove = chess.White
 	default:
 		state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 
