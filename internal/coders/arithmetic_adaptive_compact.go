@@ -79,20 +79,34 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 		return bf
 	}
 
+	// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
+	originalColorRanks := state.Fullmove < 3 || state.Fullmove == 3 && state.SideToMove == chess.White
+
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy := uint64(0)
 	color := uint32(0)
+	fullColor := color
 	pieces := []rune{}
-	for cell, piece := range state.Board {
+	colorCount := 0
+	for c, piece := range state.Board {
+		cell := chess.Square(c)
 		if piece.IsEmpty() {
 			continue
 		}
 
+		logColor := !originalColorRanks || 1 < cell.Rank() && cell.Rank() < 6
+
 		occupancy |= 1 << cell
 		if piece.Color() == chess.White {
-			color |= 1 << len(pieces)
+			fullColor |= 1 << len(pieces)
+			if logColor {
+				color |= 1 << colorCount
+			}
 		}
 		pieces = append(pieces, rune(piece.Type()))
+		if logColor {
+			colorCount++
+		}
 	}
 
 	// Halfmove clock & fullmove number.
@@ -127,15 +141,17 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 
 	// Piece placement.
 	bf.WriteInt(occupancyOut, 64)
-	bf.WriteInt(uint64(color), len(pieces))
 
 	// Side to move.
 	if len(pieces) == 32 {
 		bf.WriteBool(bool(state.SideToMove))
 	}
 
+	// Piece colors.
+	bf.WriteInt(uint64(color), colorCount)
+
 	// Arithmetic coding.
-	bits := arithmetic.EncodeAdaptive(pieces, bitfield.IntToBoolSlice(occupancy, 64), c.frequencies, bitfield.IntToBoolSlice(uint64(color), len(pieces)), state)
+	bits := arithmetic.EncodeAdaptive(pieces, bitfield.IntToBoolSlice(occupancy, 64), c.frequencies, bitfield.IntToBoolSlice(uint64(fullColor), len(pieces)), state)
 
 	if len(bits) > (1<<bitsForArithmeticCodeLength)-1 {
 		log.Fatalf("encoded data too long (%d bits)", len(bits))
@@ -234,12 +250,46 @@ func (c *ArithmeticAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
 			state.SideToMove = chess.Black
 		}
 
-		// Piece placement: colors.
-		colors := data.ReadBoolSlice(pieceCount)
-
 		// Side to move.
 		if pieceCount == 32 {
 			state.SideToMove = chess.Color(data.ReadBool())
+		}
+
+		// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
+		originalColorRanks := state.Fullmove < 3 || state.Fullmove == 3 && state.SideToMove == chess.White
+
+		// Piece placement: colors.
+		colorCount := pieceCount
+		numBlack, numWhite := 0, 0
+		if originalColorRanks {
+			colorCount = 0
+			for i, x := range occupancy {
+				c := chess.Square(i)
+				if !x {
+					continue
+				}
+				switch c.Rank() {
+				case 6, 7:
+					numBlack++
+				case 0, 1:
+					numWhite++
+				default:
+					colorCount++
+				}
+			}
+		}
+		colors := data.ReadBoolSlice(colorCount)
+		if originalColorRanks {
+			blacks := []bool{}
+			for range numBlack {
+				blacks = append(blacks, false)
+			}
+			whites := []bool{}
+			for range numWhite {
+				whites = append(whites, true)
+			}
+			colors = append(blacks, colors...)
+			colors = append(colors, whites...)
 		}
 
 		// Finish decoding en passant square.
