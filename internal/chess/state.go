@@ -34,6 +34,26 @@ func NewState() *State {
 	}
 }
 
+func NewStartingState() *State {
+	state := NewState()
+	homeRow := []Piece{Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook}
+	for i := range 8 {
+		piece := homeRow[i]
+		state.Board[i] = NewPiece(rune(piece), Black)
+		state.Board[i+8] = NewPiece(rune(Pawn), Black)
+		state.Board[i+48] = NewPiece(rune(Pawn), White)
+		state.Board[i+56] = NewPiece(rune(piece), White)
+	}
+	state.SideToMove = White
+	state.Castling['K'] = true
+	state.Castling['Q'] = true
+	state.Castling['k'] = true
+	state.Castling['q'] = true
+	state.Halfmove = 0
+	state.Fullmove = 1
+	return state
+}
+
 func ParseFen(fen string) (*State, error) {
 	parts := strings.Fields(fen)
 	state := NewState()

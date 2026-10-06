@@ -52,6 +52,12 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 
 	bf := &bitfield.BitField{}
 
+	// Encode starting position.
+	if state.Fullmove == 1 && state.SideToMove == chess.White {
+		bf.WriteInt(0, 21) // moveNum
+		return bf
+	}
+
 	// Halfmove clock & fullmove number.
 	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
 	bf.WriteInt(uint64(moveNum), 21)
@@ -108,68 +114,73 @@ func (c *ArithmeticAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
 
 	// Halfmove clock & fullMove number.
 	moveNum := int(data.ReadInt(21))
-	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
+	if moveNum == 0 {
+		state = chess.NewStartingState()
+	} else {
 
-	// Castling availability.
-	hasCastling := data.ReadBool()
-	if hasCastling {
-		for _, option := range chess.CastlingOptions {
-			state.Castling[option] = data.ReadBool()
+		state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
+
+		// Castling availability.
+		hasCastling := data.ReadBool()
+		if hasCastling {
+			for _, option := range chess.CastlingOptions {
+				state.Castling[option] = data.ReadBool()
+			}
 		}
-	}
-	// En passant square.
-	hasEnPassant := data.ReadBool()
-	enPassantFile := -1
-	if hasEnPassant {
-		enPassantFile = int(data.ReadInt(3))
-	}
-
-	// Piece placement: occupancy.
-	occupancy := data.ReadBoolSlice(64)
-	pieceCount := 0
-	for _, occupied := range occupancy {
-		if occupied {
-			pieceCount++
+		// En passant square.
+		hasEnPassant := data.ReadBool()
+		enPassantFile := -1
+		if hasEnPassant {
+			enPassantFile = int(data.ReadInt(3))
 		}
-	}
 
-	state.SideToMove = chess.White
-	if pieceCount > 32 {
-		for i, x := range occupancy {
-			occupancy[i] = !x
+		// Piece placement: occupancy.
+		occupancy := data.ReadBoolSlice(64)
+		pieceCount := 0
+		for _, occupied := range occupancy {
+			if occupied {
+				pieceCount++
+			}
 		}
-		pieceCount = 64 - pieceCount
-		state.SideToMove = chess.Black
-	}
 
-	// Piece placement: colors.
-	colors := data.ReadBoolSlice(pieceCount)
-
-	// Side to move.
-	if pieceCount == 32 {
-		state.SideToMove = chess.Color(data.ReadBool())
-	}
-
-	// Finish decoding en passant square.
-	if hasEnPassant {
-		rank := 2
-		if state.SideToMove == chess.White {
-			rank = 5
+		state.SideToMove = chess.White
+		if pieceCount > 32 {
+			for i, x := range occupancy {
+				occupancy[i] = !x
+			}
+			pieceCount = 64 - pieceCount
+			state.SideToMove = chess.Black
 		}
-		state.EnPassant = chess.NewSquareFromRankAndFile(rank, enPassantFile)
-	}
 
-	// Piece placement: pieces.
-	l := int(data.ReadInt(bitsForArithmeticCodeLength))
-	bits := data.ReadBoolSlice(l)
-	pieces := arithmetic.DecodeAdaptive(bits, pieceCount, occupancy, c.frequencies, colors, state)
+		// Piece placement: colors.
+		colors := data.ReadBoolSlice(pieceCount)
 
-	// Piece placement.
-	idx := 0
-	for i, occupied := range occupancy {
-		if occupied {
-			state.Board[i] = chess.NewPiece(pieces[idx], chess.Color(colors[idx]))
-			idx++
+		// Side to move.
+		if pieceCount == 32 {
+			state.SideToMove = chess.Color(data.ReadBool())
+		}
+
+		// Finish decoding en passant square.
+		if hasEnPassant {
+			rank := 2
+			if state.SideToMove == chess.White {
+				rank = 5
+			}
+			state.EnPassant = chess.NewSquareFromRankAndFile(rank, enPassantFile)
+		}
+
+		// Piece placement: pieces.
+		l := int(data.ReadInt(bitsForArithmeticCodeLength))
+		bits := data.ReadBoolSlice(l)
+		pieces := arithmetic.DecodeAdaptive(bits, pieceCount, occupancy, c.frequencies, colors, state)
+
+		// Piece placement.
+		idx := 0
+		for i, occupied := range occupancy {
+			if occupied {
+				state.Board[i] = chess.NewPiece(pieces[idx], chess.Color(colors[idx]))
+				idx++
+			}
 		}
 	}
 
