@@ -34,6 +34,14 @@ func (c *ArithmeticAdaptiveCompactCoder) Name() string {
 func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField {
 	state, _ := chess.ParseFen(fen)
 
+	bf := &bitfield.BitField{}
+
+	// Encode starting position.
+	if state.Fullmove == 1 && state.SideToMove == chess.White {
+		bf.WriteInt(0, 21) // moveNum
+		return bf
+	}
+
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy := uint64(0)
 	color := uint32(0)
@@ -48,14 +56,6 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 			color |= 1 << len(pieces)
 		}
 		pieces = append(pieces, rune(piece.Type()))
-	}
-
-	bf := &bitfield.BitField{}
-
-	// Encode starting position.
-	if state.Fullmove == 1 && state.SideToMove == chess.White {
-		bf.WriteInt(0, 21) // moveNum
-		return bf
 	}
 
 	// Halfmove clock & fullmove number.
