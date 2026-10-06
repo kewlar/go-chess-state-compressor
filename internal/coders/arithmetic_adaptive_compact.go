@@ -2,6 +2,7 @@ package coders
 
 import (
 	"log"
+	"slices"
 
 	"example.com/go-chess/internal/arithmetic"
 	"example.com/go-chess/internal/bitfield"
@@ -83,7 +84,7 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 	originalColorRanks := state.Fullmove < 3 || state.Fullmove == 3 && state.SideToMove == chess.White
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
-	occupancy := uint64(0)
+	occupancy := make([]bool, 64)
 	color := uint32(0)
 	fullColor := color
 	pieces := []rune{}
@@ -96,7 +97,7 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 
 		logColor := !originalColorRanks || 1 < cell.Rank() && cell.Rank() < 6
 
-		occupancy |= 1 << cell
+		occupancy[cell] = true
 		if piece.Color() == chess.White {
 			fullColor |= 1 << len(pieces)
 			if logColor {
@@ -108,6 +109,7 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 			colorCount++
 		}
 	}
+	fullOccupancy := slices.Clone(occupancy)
 
 	// Halfmove clock & fullmove number.
 	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
@@ -134,13 +136,18 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 	}
 
 	// Encode side to move in occupancy data, if possible.
-	occupancyOut := occupancy
+	occupancyOut := uint64(0)
+	for i, occupied := range occupancy {
+		if occupied {
+			occupancyOut |= 1 << i
+		}
+	}
 	if len(pieces) < 32 && state.SideToMove == chess.Black {
-		occupancyOut = occupancy ^ 0xFF_FF_FF_FF_FF_FF_FF_FF
+		occupancyOut = occupancyOut ^ 0xFF_FF_FF_FF_FF_FF_FF_FF
 	}
 
 	// Piece placement.
-	bf.WriteInt(occupancyOut, 64)
+	bf.WriteInt(occupancyOut, len(occupancy))
 
 	// Side to move.
 	if len(pieces) == 32 {
@@ -151,7 +158,7 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 	bf.WriteInt(uint64(color), colorCount)
 
 	// Arithmetic coding.
-	bits := arithmetic.EncodeAdaptive(pieces, bitfield.IntToBoolSlice(occupancy, 64), c.frequencies, bitfield.IntToBoolSlice(uint64(fullColor), len(pieces)), state)
+	bits := arithmetic.EncodeAdaptive(pieces, fullOccupancy, c.frequencies, bitfield.IntToBoolSlice(uint64(fullColor), len(pieces)), state)
 
 	if len(bits) > (1<<bitsForArithmeticCodeLength)-1 {
 		log.Fatalf("encoded data too long (%d bits)", len(bits))
