@@ -6,7 +6,7 @@ import (
 	"slices"
 
 	"example.com/go-chess/internal/chess"
-	"example.com/go-chess/internal/tools"
+	"example.com/go-chess/internal/entropy"
 )
 
 func FrequenciesToIntervals(frequencies map[rune]int) map[rune]*Interval {
@@ -83,7 +83,7 @@ func EncodeAdaptive(data []rune, occupancy []bool, frequencies map[rune]int, col
 	idx := 0
 	for i := range 64 {
 		if occupancy[i] {
-			freqs2 := adjustFrequencies(freqs, chess.Square(i), n, occupancy, color, state, data[:idx])
+			freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(i), n, occupancy, color, state, data[:idx])
 			intervals := FrequenciesToIntervals(freqs2)
 			r := data[idx]
 			if freqs2[r] == 0 {
@@ -92,7 +92,7 @@ func EncodeAdaptive(data []rune, occupancy []bool, frequencies map[rune]int, col
 			interval.Mul(intervals[r])
 			idx++
 
-			freqs = updateFrequencies(r, n-idx, freqs)
+			freqs = entropy.UpdateFrequencies(r, n-idx, freqs)
 		}
 	}
 
@@ -106,7 +106,7 @@ func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]i
 	idx := 0
 	for square, occupied := range occupancy {
 		if occupied {
-			freqs2 := adjustFrequencies(freqs, chess.Square(square), n, occupancy, color, state, data)
+			freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(square), n, occupancy, color, state, data)
 			intervals := FrequenciesToIntervals(freqs2)
 			piece := rune(0)
 			for r, i := range intervals {
@@ -122,192 +122,9 @@ func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]i
 			idx++
 			x.ScaleWithInterval(intervals[piece])
 
-			freqs = updateFrequencies(piece, n-idx, freqs)
+			freqs = entropy.UpdateFrequencies(piece, n-idx, freqs)
 		}
 	}
 
 	return data
-}
-
-func adjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces int, occupancy, color []bool, state *chess.State, placedPieces []rune) map[rune]int {
-	freqs := maps.Clone(frequencies)
-
-	// Pawns cannot be on home ranks.
-	if square.IsOnHomeRank() {
-		freqs['p'] = 0
-	}
-
-	pieceIdx := len(placedPieces) // Number of the piece to be placed.
-	pieceColor := chess.Color(color[pieceIdx])
-
-	placedCounts := map[rune]int{} // Counts of pieces (by type) placed by the side to be placed.
-	bishops := map[chess.Color]bool{}
-	kings := map[chess.Color]chess.Square{
-		chess.White: chess.InvalidSquare,
-		chess.Black: chess.InvalidSquare,
-	}
-	hasKing := false
-	kingSquare := chess.InvalidSquare
-	sq, idx := chess.Square(0), 0
-	for idx < len(placedPieces) {
-		for !occupancy[sq] {
-			sq++
-		}
-		piece := placedPieces[idx]
-		if chess.Color(color[idx]) == pieceColor {
-			placedCounts[piece]++
-			if piece == 'b' {
-				bishopColor := sq.Color()
-				bishops[bishopColor] = true
-			} else if piece == 'k' {
-				hasKing = true
-			}
-		}
-		if piece == 'k' {
-			kings[chess.Color(color[idx])] = sq
-			kingSquare = sq
-		}
-		sq++
-		idx++
-	}
-
-	promotionPossible := state.Fullmove >= 5 && numPieces < 32
-
-	// If promotion couldn't happen, there cannot be more pieces of a kind than there were originally on the board.
-	if !promotionPossible {
-		if placedCounts['q'] == 1 {
-			freqs['q'] = 0
-		}
-		if placedCounts['b'] == 2 {
-			freqs['b'] = 0
-		}
-		if placedCounts['n'] == 2 {
-			freqs['n'] = 0
-		}
-		if placedCounts['r'] == 2 {
-			freqs['r'] = 0
-		}
-	}
-
-	// If promotion couldn't happen, there cannot be two same-color Bishops on the same side.
-	if !promotionPossible && bishops[square.Color()] {
-		freqs['b'] = 0
-	}
-
-	// There cannot be more than one King per side.
-	if hasKing {
-		freqs['k'] = 0
-	}
-
-	// Kings cannot be within 1 square of one another.
-	if kingSquare.IsValid() &&
-		tools.Abs(square.Rank()-kingSquare.Rank()) <= 1 && tools.Abs(square.File()-kingSquare.File()) <= 1 {
-		freqs['k'] = 0
-	}
-
-	// If castling is available, the only piece on the Rook square can be a Rook.
-	sqs := square.String()
-	whiteCanCastle := state.Castling['K'] || state.Castling['Q']
-	blackCanCastle := state.Castling['k'] || state.Castling['q']
-	if (sqs == "a1" && state.Castling['Q'] || sqs == "h1" && state.Castling['K']) ||
-		(sqs == "a8" && state.Castling['q'] || sqs == "h8" && state.Castling['k']) {
-		freqs['r'] = 1
-		freqs['n'] = 0
-		freqs['b'] = 0
-		freqs['p'] = 0
-		freqs['k'] = 0
-		freqs['q'] = 0
-	} else if sqs == "e1" && whiteCanCastle || sqs == "e8" && blackCanCastle {
-		// If castling is available, the only piece on the King square can be a King.
-		freqs['r'] = 0
-		freqs['n'] = 0
-		freqs['b'] = 0
-		freqs['p'] = 0
-		freqs['k'] = 1
-		freqs['q'] = 0
-	}
-	// If a side can castle, a King cannot be anywhere else than on the King's square.
-	if pieceColor == chess.White && whiteCanCastle && sqs != "e1" || pieceColor == chess.Black && blackCanCastle && sqs != "e8" {
-		freqs['k'] = 0
-	}
-
-	// Side not to move cannot have their King in check.
-	sideNotToMove := state.SideToMove.Other()
-	if pieceColor == sideNotToMove && !kings[pieceColor].IsValid() {
-		// Is anything by SideToMove on the board attacking our target square?
-		isAttacking := false
-		board := buildBoard(occupancy, color, placedPieces)
-		for sq, piece := range board {
-			if piece.IsValid() && piece.Color() == state.SideToMove && chess.Attacks(board, chess.Square(sq), square) {
-				isAttacking = true
-				break
-			}
-		}
-
-		if isAttacking { // square is attacked by state.SideToMove
-			freqs['k'] = 0
-		}
-	} else if pieceColor == state.SideToMove && kings[sideNotToMove].IsValid() {
-		// Side to move cannot be checking other side's King.
-		board := buildBoard(occupancy, color, placedPieces)
-		for _, pieceType := range []rune{'r', 'b', 'n', 'q', 'p'} {
-			piece := chess.NewPiece(pieceType, pieceColor)
-			board2 := boardWith(board, piece, square)
-			if chess.Attacks(board2, square, kings[sideNotToMove]) {
-				freqs[pieceType] = 0
-			}
-		}
-	}
-
-	return freqs
-}
-
-func updateFrequencies(piece rune, remaining int, frequencies map[rune]int) map[rune]int {
-	freqs := maps.Clone(frequencies)
-
-	switch piece {
-	case 'k':
-		freqs[piece]--
-	case 'p':
-		freqs[piece]--
-	default:
-		freqs[piece]--
-		// One of the unencountered pawns may be promoted to a piece.
-		if freqs[piece] == 0 && freqs['p'] > 1 {
-			freqs[piece] = 1
-		}
-	}
-	remaining -= freqs['k']
-	for r, c := range freqs {
-		if r != 'k' {
-			freqs[r] = min(c, remaining)
-		}
-	}
-
-	return freqs
-}
-
-func buildBoard(occupancy, color []bool, placedPieces []rune) chess.Board {
-	board := chess.Board{}
-	sq := 0
-	idx := 0
-	for idx < len(placedPieces) {
-		for !occupancy[sq] {
-			sq++
-		}
-		board[sq] = chess.NewPiece(placedPieces[idx], chess.Color(color[idx]))
-		sq++
-		idx++
-	}
-
-	return board
-}
-
-func boardWith(board chess.Board, piece chess.Piece, square chess.Square) chess.Board {
-	board2 := chess.Board{}
-	for i := range 64 {
-		board2[i] = board[i]
-	}
-	board2[square] = piece
-	return board2
 }

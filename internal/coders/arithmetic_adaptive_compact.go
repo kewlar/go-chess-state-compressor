@@ -7,6 +7,7 @@ import (
 	"example.com/go-chess/internal/arithmetic"
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
+	"example.com/go-chess/internal/entropy"
 	"example.com/go-chess/internal/tools"
 )
 
@@ -33,15 +34,6 @@ func (c *ArithmeticAdaptiveCompactCoder) Name() string {
 	return "Arithmetic (adaptive, compact)"
 }
 
-func findMatchingMoveIndex(board chess.Board, moves []chess.Move) int {
-	for i, m := range moves {
-		if board[m.From].IsEmpty() && board[m.To].IsOccupied() {
-			return i
-		}
-	}
-	return -1
-}
-
 func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField {
 	state, _ := chess.ParseFen(fen)
 
@@ -56,7 +48,7 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 	// Encode the board after first move by White
 	if state.Fullmove == 1 && state.SideToMove == chess.Black {
 		bf.WriteInt(1, 21) // moveNum
-		whiteMove := findMatchingMoveIndex(state.Board, chess.FirstWhiteMoves())
+		whiteMove := entropy.FindMatchingMoveIndex(state.Board, chess.FirstWhiteMoves())
 		if whiteMove == -1 { // Not found.
 			panic("move not found")
 		}
@@ -67,11 +59,11 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 	// Encode the board after first move by Black
 	if state.Fullmove == 2 && state.SideToMove == chess.White {
 		bf.WriteInt(2, 21) // moveNum
-		whiteMove := findMatchingMoveIndex(state.Board, chess.FirstWhiteMoves())
+		whiteMove := entropy.FindMatchingMoveIndex(state.Board, chess.FirstWhiteMoves())
 		if whiteMove == -1 { // Not found.
 			panic("move not found")
 		}
-		blackMove := findMatchingMoveIndex(state.Board, chess.FirstBlackMoves())
+		blackMove := entropy.FindMatchingMoveIndex(state.Board, chess.FirstBlackMoves())
 		if blackMove == -1 { // Not found.
 			panic("move not found")
 		}
