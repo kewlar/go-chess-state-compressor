@@ -2,14 +2,13 @@ package coders
 
 import (
 	"fmt"
-	"log"
 	"maps"
 	"slices"
 
-	"example.com/go-chess/internal/arithmetic"
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
 	"example.com/go-chess/internal/entropy"
+	"example.com/go-chess/internal/huffman"
 	"example.com/go-chess/internal/tools"
 )
 
@@ -152,34 +151,25 @@ func (c *HuffmanAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField {
 	bf.WriteInt(uint64(color), colorCount)
 
 	// Huffman coding.
-	// TODO: implement
 	freqs := maps.Clone(c.frequencies)
-	interval := arithmetic.NewInterval(arithmetic.NewRational(0, 1), arithmetic.NewRational(1, 1))
 	n := len(pieces)
 	colorSlice := bitfield.IntToBoolSlice(uint64(fullColor), len(pieces))
 	idx := 0
 	for i := range 64 {
 		if occupancy[i] {
 			freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(i), n, fullOccupancy, colorSlice, state, pieces[:idx])
-			intervals := arithmetic.FrequenciesToIntervals(freqs2)
 			r := pieces[idx]
 			if freqs2[r] == 0 {
 				panic(fmt.Sprintf("didn't expect '%s' at square %s", string(r), chess.Square(i).String()))
 			}
-			interval.Mul(intervals[r])
+			tree := huffman.BuildHuffmanTree(freqs2)
+			dict := tree.BuildDictionary()
+			bf.WriteBoolSlice(dict[r].Bits)
 			idx++
 
 			freqs = entropy.UpdateFrequencies(r, n-idx, freqs)
 		}
 	}
-
-	bits := interval.ToBits()
-
-	if len(bits) > (1<<bitsForArithmeticCodeLength)-1 {
-		log.Fatalf("encoded data too long (%d bits)", len(bits))
-	}
-	bf.WriteInt(uint64(len(bits)), bitsForArithmeticCodeLength)
-	bf.WriteBoolSlice(bits)
 
 	return bf
 }
@@ -324,37 +314,27 @@ func (c *HuffmanAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
 		}
 
 		// Piece placement: pieces.
-		l := int(data.ReadInt(bitsForArithmeticCodeLength))
-		bits := data.ReadBoolSlice(l)
-		// TODO: implement
 		freqs := maps.Clone(c.frequencies)
-		n := pieceCount
-		data := make([]rune, 0, n)
-		x := arithmetic.NewRationalFromBits(bits)
+		pieces := make([]rune, 0, pieceCount)
 		idx := 0
 		for square, occupied := range occupancy {
 			if occupied {
-				freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(square), n, occupancy, colors, state, data)
-				intervals := arithmetic.FrequenciesToIntervals(freqs2)
-				piece := rune(0)
-				for r, i := range intervals {
-					if i.Cover(x) {
-						piece = r
-						break
-					}
-				}
-				if piece == 0 {
-					panic("covering interval not found")
-				}
-				data = append(data, piece)
-				idx++
-				x.ScaleWithInterval(intervals[piece])
+				freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(square), pieceCount, occupancy, colors, state, pieces)
+				tree := huffman.BuildHuffmanTree(freqs2)
 
-				freqs = entropy.UpdateFrequencies(piece, n-idx, freqs)
+				node := tree
+				for !node.IsLeaf() {
+					bit := data.ReadBool()
+					node = node.Children[bit]
+				}
+				piece := node.Value
+				pieces = append(pieces, piece)
+
+				idx++
+
+				freqs = entropy.UpdateFrequencies(piece, pieceCount-idx, freqs)
 			}
 		}
-
-		pieces := data
 
 		// Piece placement.
 		idx = 0
