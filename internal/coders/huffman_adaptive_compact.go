@@ -2,7 +2,6 @@ package coders
 
 import (
 	"fmt"
-	"maps"
 	"slices"
 
 	"example.com/go-chess/internal/bitfield"
@@ -151,8 +150,8 @@ func (c *HuffmanAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField {
 	bf.WriteInt(uint64(color), colorCount)
 
 	// Huffman coding.
-	freqs := maps.Clone(c.frequencies)
 	n := len(pieces)
+	freqs := entropy.PrepareFrequencies(n, c.frequencies)
 	colorSlice := bitfield.IntToBoolSlice(uint64(fullColor), len(pieces))
 	idx := 0
 	for i := range 64 {
@@ -314,7 +313,7 @@ func (c *HuffmanAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
 		}
 
 		// Piece placement: pieces.
-		freqs := maps.Clone(c.frequencies)
+		freqs := entropy.PrepareFrequencies(pieceCount, c.frequencies)
 		pieces := make([]rune, 0, pieceCount)
 		idx := 0
 		for square, occupied := range occupancy {

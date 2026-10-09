@@ -170,6 +170,19 @@ func UpdateFrequencies(piece rune, remaining int, frequencies map[rune]int) map[
 	return freqs
 }
 
+func PrepareFrequencies(pieceCount int, frequencies map[rune]int) map[rune]int {
+	freqs := maps.Clone(frequencies)
+
+	pieceCount = pieceCount*100 - freqs['k']
+	for r, c := range freqs {
+		if r != 'k' {
+			freqs[r] = min(c, pieceCount)
+		}
+	}
+
+	return freqs
+}
+
 func buildBoard(occupancy, color []bool, placedPieces []rune) chess.Board {
 	board := chess.Board{}
 	sq := 0

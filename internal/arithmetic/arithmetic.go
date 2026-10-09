@@ -2,7 +2,6 @@ package arithmetic
 
 import (
 	"fmt"
-	"maps"
 	"slices"
 
 	"example.com/go-chess/internal/chess"
@@ -77,10 +76,10 @@ func Decode(bits []bool, n int, intervals map[rune]*Interval) []rune {
 }
 
 func EncodeAdaptive(data []rune, occupancy []bool, frequencies map[rune]int, color []bool, state *chess.State) []bool {
-	freqs := maps.Clone(frequencies)
 	interval := NewInterval(NewRational(0, 1), NewRational(1, 1))
 	n := len(data)
 	idx := 0
+	freqs := entropy.PrepareFrequencies(n, frequencies)
 	for i := range 64 {
 		if occupancy[i] {
 			freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(i), n, occupancy, color, state, data[:idx])
@@ -100,7 +99,7 @@ func EncodeAdaptive(data []rune, occupancy []bool, frequencies map[rune]int, col
 }
 
 func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]int, color []bool, state *chess.State) []rune {
-	freqs := maps.Clone(frequencies)
+	freqs := entropy.PrepareFrequencies(n, frequencies)
 	data := make([]rune, 0, n)
 	x := NewRationalFromBits(bits)
 	idx := 0
