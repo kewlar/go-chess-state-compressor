@@ -13,11 +13,13 @@ type Node struct {
 func BuildHuffmanTree(frequencies map[rune]int) *Node {
 	leaves := []*Node{}
 	for r, n := range frequencies {
-		leaf := &Node{
-			Value:     r,
-			Frequency: n,
+		if n > 0 {
+			leaf := &Node{
+				Value:     r,
+				Frequency: n,
+			}
+			leaves = append(leaves, leaf)
 		}
-		leaves = append(leaves, leaf)
 	}
 	for len(leaves) > 1 {
 		slices.SortFunc(leaves, func(a, b *Node) int {
@@ -25,6 +27,12 @@ func BuildHuffmanTree(frequencies map[rune]int) *Node {
 				return -1
 			}
 			if a.Frequency > b.Frequency {
+				return 1
+			}
+			if a.Value < b.Value {
+				return -1
+			}
+			if a.Value > b.Value {
 				return 1
 			}
 			return 0
