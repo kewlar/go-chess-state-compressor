@@ -143,19 +143,24 @@ func AdjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 func UpdateFrequencies(piece rune, remaining int, frequencies map[rune]int) map[rune]int {
 	freqs := maps.Clone(frequencies)
 
-	switch piece {
-	case 'k':
-		freqs[piece]--
-	case 'p':
-		freqs[piece]--
-	default:
-		freqs[piece]--
+	freqs[piece] = max(freqs[piece]-100, 0)
+	if piece != 'k' && piece != 'p' {
 		// One of the unencountered pawns may be promoted to a piece.
-		if freqs[piece] == 0 && freqs['p'] > 1 {
-			freqs[piece] = 1
+		if freqs[piece] == 0 && freqs['p'] > 100 {
+			switch piece {
+			case 'q':
+				freqs[piece] = 100
+			case 'r':
+				freqs[piece] = 3
+			case 'b':
+				freqs[piece] = 1
+			case 'n':
+				freqs[piece] = 1
+			}
 		}
 	}
-	remaining -= freqs['k']
+
+	remaining = remaining*100 - freqs['k']
 	for r, c := range freqs {
 		if r != 'k' {
 			freqs[r] = min(c, remaining)

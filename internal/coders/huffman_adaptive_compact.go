@@ -18,12 +18,12 @@ type HuffmanAdaptiveCompactCoder struct {
 
 func NewHuffmanAdaptiveCompactCoder() *HuffmanAdaptiveCompactCoder {
 	frequencies := map[rune]int{
-		'p': 16,
-		'k': 2,
-		'q': 2,
-		'r': 4,
-		'b': 4,
-		'n': 4,
+		'p': 1600,
+		'k': 200,
+		'q': 200,
+		'r': 400,
+		'b': 400,
+		'n': 400,
 	}
 
 	return &HuffmanAdaptiveCompactCoder{
