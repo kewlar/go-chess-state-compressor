@@ -13,7 +13,7 @@ type State struct {
 	Castling   map[rune]bool
 	EnPassant  Square // 0..63, or InvalidSquare
 	Halfmove   int    // 0..150
-	Fullmove   int    // 1..8848
+	Fullmove   int    // 1..8849
 }
 
 const (
