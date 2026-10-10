@@ -146,7 +146,7 @@ func UpdateFrequencies(piece rune, remaining int, frequencies map[rune]int) map[
 	freqs[piece] = max(freqs[piece]-100, 0)
 	if piece != 'k' && piece != 'p' {
 		// One of the unencountered pawns may be promoted to a piece.
-		if freqs[piece] == 0 && freqs['p'] > 100 {
+		if freqs[piece] == 0 && freqs['p'] >= 100 {
 			switch piece {
 			case 'q':
 				freqs[piece] = 100
