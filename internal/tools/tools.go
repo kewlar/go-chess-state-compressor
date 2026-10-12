@@ -1,6 +1,8 @@
 // Package tools contains miscellaneous utility functions.
 package tools
 
+import "slices"
+
 // Abs returns the absolute value of an integer number x.
 func Abs(x int) int {
 	if x < 0 {
@@ -18,4 +20,23 @@ func Sign(x int) int {
 		return 1
 	}
 	return 0
+}
+
+func EliasGamma(x int) []bool {
+	if x < 1 {
+		return []bool{} // Cannot calculate Elias Gamma value for zero or negative numbers.
+	}
+	x0 := x
+	out := []bool{}
+	for x0 > 0 {
+		out = append(out, x0&1 == 1)
+		x0 >>= 1
+	}
+	i := 2
+	for i <= x {
+		out = append(out, false)
+		i <<= 1
+	}
+	slices.Reverse(out)
+	return out
 }
