@@ -146,6 +146,9 @@ func (c *ArithmeticAdaptiveCompact2Coder) FromFen(fen string) *bitfield.BitField
 		bf.WriteInt(uint64(state.EnPassant), 3) // Only the lowest 3 bits -- the file -- are necessary.
 		enPassantPawn := chess.Square(int(state.EnPassant) ^ 0b1000)
 		skip[enPassantPawn] = true
+		skip[state.EnPassant] = false
+		enPassantHome := chess.Square(int(state.EnPassant) ^ 0b11000)
+		skip[enPassantHome] = false
 	} else {
 		bf.WriteBool(false)
 	}
@@ -268,12 +271,15 @@ func (c *ArithmeticAdaptiveCompact2Coder) ToFen(data *bitfield.BitField) string 
 			state.EnPassant = chess.NewSquareFromRankAndFile(rank, enPassantFile)
 			enPassantPawn := chess.Square(int(state.EnPassant) ^ 0b1000)
 			skip[enPassantPawn] = true
+			skip[state.EnPassant] = false
+			enPassantHome := chess.Square(int(state.EnPassant) ^ 0b11000)
+			skip[enPassantHome] = false
 		}
 
 		// Piece placement: occupancy.
-		skippedSquares := []int{}
-		for s := range skip {
-			skippedSquares = append(skippedSquares, int(s))
+		skippedSquares := map[int]bool{}
+		for s, x := range skip {
+			skippedSquares[int(s)] = x
 		}
 		occupancy := data.ReadBoolSlice(64 - len(skippedSquares))
 		occupancy = tools.WithSquares(occupancy, skippedSquares)
