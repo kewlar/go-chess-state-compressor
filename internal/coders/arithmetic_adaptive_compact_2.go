@@ -109,6 +109,9 @@ func (c *ArithmeticAdaptiveCompact2Coder) FromFen(fen string) *bitfield.BitField
 
 	skip := map[chess.Square]bool{} // Map of squares to skip in occupancy data.
 
+	// Side to move.
+	bf.WriteBool(bool(state.SideToMove))
+
 	// Castling availability.
 	hasCastling := false
 	for _, option := range chess.CastlingOptions {
@@ -141,12 +144,11 @@ func (c *ArithmeticAdaptiveCompact2Coder) FromFen(fen string) *bitfield.BitField
 	if state.EnPassant.IsValid() {
 		bf.WriteBool(true)
 		bf.WriteInt(uint64(state.EnPassant), 3) // Only the lowest 3 bits -- the file -- are necessary.
+		enPassantPawn := chess.Square(int(state.EnPassant) ^ 0b1000)
+		skip[enPassantPawn] = true
 	} else {
 		bf.WriteBool(false)
 	}
-
-	// Side to move.
-	bf.WriteBool(bool(state.SideToMove))
 
 	// Piece placement.
 	skippedSquares := []int{}
@@ -227,6 +229,9 @@ func (c *ArithmeticAdaptiveCompact2Coder) ToFen(data *bitfield.BitField) string 
 	default:
 		state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 
+		// Side to move.
+		state.SideToMove = chess.Color(data.ReadBool())
+
 		skip := map[chess.Square]bool{} // Squares that are skipped in occupancy data.
 
 		// Castling availability.
@@ -254,13 +259,16 @@ func (c *ArithmeticAdaptiveCompact2Coder) ToFen(data *bitfield.BitField) string 
 		}
 		// En passant square.
 		hasEnPassant := data.ReadBool()
-		enPassantFile := -1
 		if hasEnPassant {
-			enPassantFile = int(data.ReadInt(3))
+			enPassantFile := int(data.ReadInt(3))
+			rank := 2
+			if state.SideToMove == chess.White {
+				rank = 5
+			}
+			state.EnPassant = chess.NewSquareFromRankAndFile(rank, enPassantFile)
+			enPassantPawn := chess.Square(int(state.EnPassant) ^ 0b1000)
+			skip[enPassantPawn] = true
 		}
-
-		// Side to move.
-		state.SideToMove = chess.Color(data.ReadBool())
 
 		// Piece placement: occupancy.
 		skippedSquares := []int{}
@@ -311,15 +319,6 @@ func (c *ArithmeticAdaptiveCompact2Coder) ToFen(data *bitfield.BitField) string 
 			}
 			colors = append(blacks, colors...)
 			colors = append(colors, whites...)
-		}
-
-		// Finish decoding en passant square.
-		if hasEnPassant {
-			rank := 2
-			if state.SideToMove == chess.White {
-				rank = 5
-			}
-			state.EnPassant = chess.NewSquareFromRankAndFile(rank, enPassantFile)
 		}
 
 		// Piece placement: pieces.
