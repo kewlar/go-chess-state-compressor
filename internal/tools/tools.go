@@ -1,7 +1,9 @@
 // Package tools contains miscellaneous utility functions.
 package tools
 
-import "slices"
+import (
+	"slices"
+)
 
 // Abs returns the absolute value of an integer number x.
 func Abs(x int) int {
@@ -38,5 +40,29 @@ func EliasGamma(x int) []bool {
 		i <<= 1
 	}
 	slices.Reverse(out)
+	return out
+}
+
+func WithoutSquares(s []bool, squares []int) []bool {
+	out := []bool{}
+	for i, x := range s {
+		if !slices.Contains(squares, i) {
+			out = append(out, x)
+		}
+	}
+	return out
+}
+
+func WithSquares(s []bool, squares []int) []bool {
+	out := []bool{}
+	idx := 0
+	for i := range 64 {
+		if slices.Contains(squares, i) {
+			out = append(out, true)
+		} else {
+			out = append(out, s[idx])
+			idx++
+		}
+	}
 	return out
 }

@@ -107,6 +107,8 @@ func (c *ArithmeticAdaptiveCompact2Coder) FromFen(fen string) *bitfield.BitField
 	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
 	bf.WriteInt(uint64(moveNum), 21)
 
+	skip := map[chess.Square]bool{} // Map of squares to skip in occupancy data.
+
 	// Castling availability.
 	hasCastling := false
 	for _, option := range chess.CastlingOptions {
@@ -116,6 +118,22 @@ func (c *ArithmeticAdaptiveCompact2Coder) FromFen(fen string) *bitfield.BitField
 	if hasCastling {
 		for _, option := range chess.CastlingOptions {
 			bf.WriteBool(state.Castling[option])
+			if state.Castling[option] {
+				switch option {
+				case 'K':
+					skip[chess.NewSquare("e1")] = true
+					skip[chess.NewSquare("h1")] = true
+				case 'Q':
+					skip[chess.NewSquare("e1")] = true
+					skip[chess.NewSquare("a1")] = true
+				case 'k':
+					skip[chess.NewSquare("e8")] = true
+					skip[chess.NewSquare("h8")] = true
+				case 'q':
+					skip[chess.NewSquare("e8")] = true
+					skip[chess.NewSquare("a8")] = true
+				}
+			}
 		}
 	}
 
@@ -131,7 +149,12 @@ func (c *ArithmeticAdaptiveCompact2Coder) FromFen(fen string) *bitfield.BitField
 	bf.WriteBool(bool(state.SideToMove))
 
 	// Piece placement.
-	bf.WriteBoolSlice(occupancy)
+	skippedSquares := []int{}
+	for s := range skip {
+		skippedSquares = append(skippedSquares, int(s))
+	}
+	occupancyOut := tools.WithoutSquares(occupancy, skippedSquares)
+	bf.WriteBoolSlice(occupancyOut)
 
 	// Piece colors.
 	bf.WriteInt(uint64(color), colorCount)
@@ -204,11 +227,29 @@ func (c *ArithmeticAdaptiveCompact2Coder) ToFen(data *bitfield.BitField) string 
 	default:
 		state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 
+		skip := map[chess.Square]bool{} // Squares that are skipped in occupancy data.
+
 		// Castling availability.
 		hasCastling := data.ReadBool()
 		if hasCastling {
 			for _, option := range chess.CastlingOptions {
 				state.Castling[option] = data.ReadBool()
+				if state.Castling[option] {
+					switch option {
+					case 'K':
+						skip[chess.NewSquare("e1")] = true
+						skip[chess.NewSquare("h1")] = true
+					case 'Q':
+						skip[chess.NewSquare("e1")] = true
+						skip[chess.NewSquare("a1")] = true
+					case 'k':
+						skip[chess.NewSquare("e8")] = true
+						skip[chess.NewSquare("h8")] = true
+					case 'q':
+						skip[chess.NewSquare("e8")] = true
+						skip[chess.NewSquare("a8")] = true
+					}
+				}
 			}
 		}
 		// En passant square.
@@ -222,7 +263,12 @@ func (c *ArithmeticAdaptiveCompact2Coder) ToFen(data *bitfield.BitField) string 
 		state.SideToMove = chess.Color(data.ReadBool())
 
 		// Piece placement: occupancy.
-		occupancy := data.ReadBoolSlice(64)
+		skippedSquares := []int{}
+		for s := range skip {
+			skippedSquares = append(skippedSquares, int(s))
+		}
+		occupancy := data.ReadBoolSlice(64 - len(skippedSquares))
+		occupancy = tools.WithSquares(occupancy, skippedSquares)
 		pieceCount := 0
 		for _, occupied := range occupancy {
 			if occupied {
