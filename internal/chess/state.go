@@ -197,11 +197,11 @@ func (state *State) ToFen() string {
 	fen.WriteRune(' ')
 
 	// Halfmove clock.
-	fen.WriteString(strconv.Itoa(int(state.Halfmove)))
+	fen.WriteString(strconv.Itoa(state.Halfmove))
 	fen.WriteRune(' ')
 
 	// Fullmove number.
-	fen.WriteString(strconv.Itoa(int(state.Fullmove)))
+	fen.WriteString(strconv.Itoa(state.Fullmove))
 
 	return fen.String()
 }
