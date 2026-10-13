@@ -75,7 +75,7 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy := make([]bool, 64)
-	color := []bool{}
+	color := make([]bool, 64)
 	fullColor := []bool{}
 	pieces := []rune{}
 	for c, piece := range state.Board {
@@ -85,12 +85,9 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 		}
 
 		occupancy[cell] = true
+		color[cell] = piece.Color() == chess.White
 		pieces = append(pieces, rune(piece.Type()))
 		fullColor = append(fullColor, piece.Color() == chess.White)
-		logColor := !originalColorRanks || 1 < cell.Rank() && cell.Rank() < 6
-		if logColor {
-			color = append(color, piece.Color() == chess.White)
-		}
 	}
 	fullOccupancy := slices.Clone(occupancy)
 
@@ -147,7 +144,26 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 	bf.WriteBoolSlice(occupancyOut)
 
 	// Piece colors.
-	bf.WriteBoolSlice(color)
+	skip = map[chess.Square]bool{}
+	for cell, isOccupied := range occupancy {
+		if !isOccupied {
+			skip[chess.Square(cell)] = true
+		}
+	}
+	if originalColorRanks {
+		for file := range 8 {
+			skip[chess.NewSquareFromRankAndFile(0, file)] = true
+			skip[chess.NewSquareFromRankAndFile(1, file)] = true
+			skip[chess.NewSquareFromRankAndFile(6, file)] = true
+			skip[chess.NewSquareFromRankAndFile(7, file)] = true
+		}
+	}
+	skippedSquares = []int{}
+	for s := range skip {
+		skippedSquares = append(skippedSquares, int(s))
+	}
+	colorOut := tools.WithoutSquares(color, skippedSquares)
+	bf.WriteBoolSlice(colorOut)
 
 	// Arithmetic coding.
 	bits := arithmetic.EncodeAdaptive(pieces, fullOccupancy, c.frequencies, fullColor, state)
@@ -276,38 +292,33 @@ func (c *ArithmeticAdaptiveCompact2Coder) Decode(data *bitfield.BitField) *chess
 		// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
 		originalColorRanks := state.Fullmove < 3 || state.Fullmove == 3 && state.SideToMove == chess.White
 
-		// Piece placement: colors.
-		colorCount := pieceCount
-		numBlack, numWhite := 0, 0
+		skip = map[chess.Square]bool{} // Squares that are skipped in color data.
+		for cell, isOccupied := range occupancy {
+			if !isOccupied {
+				skip[chess.Square(cell)] = false
+			}
+		}
 		if originalColorRanks {
-			colorCount = 0
-			for i, x := range occupancy {
-				c := chess.Square(i)
-				if !x {
-					continue
-				}
-				switch c.Rank() {
-				case 6, 7:
-					numBlack++
-				case 0, 1:
-					numWhite++
-				default:
-					colorCount++
+			for file := range 8 {
+				for _, rank := range []int{0, 1, 6, 7} {
+					sq := chess.NewSquareFromRankAndFile(rank, file)
+					skip[sq] = occupancy[sq] && rank <= 1
 				}
 			}
 		}
-		colors := data.ReadBoolSlice(colorCount)
-		if originalColorRanks {
-			blacks := []bool{}
-			for range numBlack {
-				blacks = append(blacks, false)
+		skippedSquares = map[int]bool{}
+		for s, x := range skip {
+			skippedSquares[int(s)] = x
+		}
+
+		// Piece placement: colors.
+		colorIn := data.ReadBoolSlice(64 - len(skippedSquares))
+		fullColor := tools.WithSquares(colorIn, skippedSquares)
+		colors := []bool{}
+		for i, isOccupied := range occupancy {
+			if isOccupied {
+				colors = append(colors, fullColor[i])
 			}
-			whites := []bool{}
-			for range numWhite {
-				whites = append(whites, true)
-			}
-			colors = append(blacks, colors...)
-			colors = append(colors, whites...)
 		}
 
 		// Piece placement: pieces.
