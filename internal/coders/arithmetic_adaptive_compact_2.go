@@ -76,7 +76,7 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy := make([]bool, 64)
 	color := uint32(0)
-	fullColor := color
+	fullColor := []bool{}
 	pieces := []rune{}
 	colorCount := 0
 	for c, piece := range state.Board {
@@ -89,12 +89,12 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 
 		occupancy[cell] = true
 		if piece.Color() == chess.White {
-			fullColor |= 1 << len(pieces)
 			if logColor {
 				color |= 1 << colorCount
 			}
 		}
 		pieces = append(pieces, rune(piece.Type()))
+		fullColor = append(fullColor, piece.Color() == chess.White)
 		if logColor {
 			colorCount++
 		}
@@ -157,7 +157,7 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 	bf.WriteInt(uint64(color), colorCount)
 
 	// Arithmetic coding.
-	bits := arithmetic.EncodeAdaptive(pieces, fullOccupancy, c.frequencies, bitfield.IntToBoolSlice(uint64(fullColor), len(pieces)), state)
+	bits := arithmetic.EncodeAdaptive(pieces, fullOccupancy, c.frequencies, fullColor, state)
 
 	if len(bits) > (1<<bitsForArithmeticCodeLength)-1 {
 		log.Fatalf("encoded data too long (%d bits)", len(bits))
