@@ -317,9 +317,7 @@ func (c *ArithmeticByCountCoder) FromFen(fen string) *bitfield.BitField {
 	bf.WriteBool(bool(state.SideToMove))
 
 	// Castling availability.
-	for _, option := range chess.CastlingOptions {
-		bf.WriteBool(state.Castling[option])
-	}
+	bf.WriteBoolSlice(state.Castling.BoolSlice())
 
 	// En passant square.
 	bf.WriteInt(uint64(state.EnPassant), 7)
@@ -357,9 +355,7 @@ func (c *ArithmeticByCountCoder) ToFen(data *bitfield.BitField) string {
 	state.SideToMove = chess.Color(data.ReadBool())
 
 	// Castling availability.
-	for _, option := range chess.CastlingOptions {
-		state.Castling[option] = data.ReadBool()
-	}
+	state.Castling = chess.NewCastling(data.ReadBoolSlice(4))
 
 	// En passant square.
 	state.EnPassant = chess.Square(data.ReadInt(7))

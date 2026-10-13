@@ -108,15 +108,9 @@ func (c *HuffmanAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField {
 	bf.WriteInt(uint64(moveNum), 21)
 
 	// Castling availability.
-	hasCastling := false
-	for _, option := range chess.CastlingOptions {
-		hasCastling = hasCastling || state.Castling[option]
-	}
-	bf.WriteBool(hasCastling)
-	if hasCastling {
-		for _, option := range chess.CastlingOptions {
-			bf.WriteBool(state.Castling[option])
-		}
+	bf.WriteBool(state.Castling.IsAvailable())
+	if state.Castling.IsAvailable() {
+		bf.WriteBoolSlice(state.Castling.BoolSlice())
 	}
 
 	// En passant square.
@@ -232,9 +226,7 @@ func (c *HuffmanAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
 		// Castling availability.
 		hasCastling := data.ReadBool()
 		if hasCastling {
-			for _, option := range chess.CastlingOptions {
-				state.Castling[option] = data.ReadBool()
-			}
+			state.Castling = chess.NewCastling(data.ReadBoolSlice(4))
 		}
 		// En passant square.
 		hasEnPassant := data.ReadBool()
