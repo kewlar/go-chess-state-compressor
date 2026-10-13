@@ -75,28 +75,21 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy := make([]bool, 64)
-	color := uint32(0)
+	color := []bool{}
 	fullColor := []bool{}
 	pieces := []rune{}
-	colorCount := 0
 	for c, piece := range state.Board {
 		cell := chess.Square(c)
 		if piece.IsEmpty() {
 			continue
 		}
 
-		logColor := !originalColorRanks || 1 < cell.Rank() && cell.Rank() < 6
-
 		occupancy[cell] = true
-		if piece.Color() == chess.White {
-			if logColor {
-				color |= 1 << colorCount
-			}
-		}
 		pieces = append(pieces, rune(piece.Type()))
 		fullColor = append(fullColor, piece.Color() == chess.White)
+		logColor := !originalColorRanks || 1 < cell.Rank() && cell.Rank() < 6
 		if logColor {
-			colorCount++
+			color = append(color, piece.Color() == chess.White)
 		}
 	}
 	fullOccupancy := slices.Clone(occupancy)
@@ -154,7 +147,7 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 	bf.WriteBoolSlice(occupancyOut)
 
 	// Piece colors.
-	bf.WriteInt(uint64(color), colorCount)
+	bf.WriteBoolSlice(color)
 
 	// Arithmetic coding.
 	bits := arithmetic.EncodeAdaptive(pieces, fullOccupancy, c.frequencies, fullColor, state)
