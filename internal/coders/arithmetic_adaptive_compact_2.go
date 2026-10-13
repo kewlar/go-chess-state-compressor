@@ -144,7 +144,6 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 	bf.WriteBoolSlice(occupancyOut)
 
 	// Piece colors.
-	skip = map[chess.Square]bool{}
 	for cell, isOccupied := range occupancy {
 		if !isOccupied {
 			skip[chess.Square(cell)] = true
@@ -152,10 +151,9 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 	}
 	if originalColorRanks {
 		for file := range 8 {
-			skip[chess.NewSquareFromRankAndFile(0, file)] = true
-			skip[chess.NewSquareFromRankAndFile(1, file)] = true
-			skip[chess.NewSquareFromRankAndFile(6, file)] = true
-			skip[chess.NewSquareFromRankAndFile(7, file)] = true
+			for _, rank := range []int{0, 1, 6, 7} {
+				skip[chess.NewSquareFromRankAndFile(rank, file)] = true
+			}
 		}
 	}
 	skippedSquares = []int{}
@@ -289,22 +287,33 @@ func (c *ArithmeticAdaptiveCompact2Coder) Decode(data *bitfield.BitField) *chess
 			}
 		}
 
-		// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
-		originalColorRanks := state.Fullmove < 3 || state.Fullmove == 3 && state.SideToMove == chess.White
-
-		skip = map[chess.Square]bool{} // Squares that are skipped in color data.
+		// Restore full-board piece color map. True = White, False = Black or empty.
 		for cell, isOccupied := range occupancy {
 			if !isOccupied {
-				skip[chess.Square(cell)] = false
+				skip[chess.Square(cell)] = false // Empty squares to be added.
 			}
 		}
+		// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
+		originalColorRanks := state.Fullmove < 3 || state.Fullmove == 3 && state.SideToMove == chess.White
 		if originalColorRanks {
 			for file := range 8 {
 				for _, rank := range []int{0, 1, 6, 7} {
 					sq := chess.NewSquareFromRankAndFile(rank, file)
-					skip[sq] = occupancy[sq] && rank <= 1
+					skip[sq] = occupancy[sq] && rank <= 1 // White or Black.
 				}
 			}
+		}
+		if state.Castling['k'] {
+			skip[chess.NewSquare("e8")] = false // Black squares to be added.
+			skip[chess.NewSquare("h8")] = false
+		}
+		if state.Castling['q'] {
+			skip[chess.NewSquare("e8")] = false
+			skip[chess.NewSquare("a8")] = false
+		}
+		if state.EnPassant.IsValid() {
+			enPassantPawn := chess.Square(int(state.EnPassant) ^ 0b1000)
+			skip[enPassantPawn] = state.SideToMove == chess.Black
 		}
 		skippedSquares = map[int]bool{}
 		for s, x := range skip {
