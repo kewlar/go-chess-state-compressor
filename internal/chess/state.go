@@ -10,7 +10,7 @@ import (
 type State struct {
 	Board      Board
 	SideToMove Color // 'w' or 'b'
-	Castling   map[rune]bool
+	Castling   Castling
 	EnPassant  Square // 0..63, or InvalidSquare
 	Halfmove   int    // 0..150
 	Fullmove   int    // 1..8849
@@ -24,12 +24,11 @@ const (
 var (
 	reCastlingOptions = regexp.MustCompile(`^(-|[KQkq]{1,4})$`)
 	reEnPassantSquare = regexp.MustCompile(`^(-|[a-h][36])$`)
-	CastlingOptions   = []rune{'K', 'Q', 'k', 'q'}
 )
 
 func NewState() *State {
 	return &State{
-		Castling:  map[rune]bool{},
+		Castling:  Castling{},
 		EnPassant: InvalidSquare,
 	}
 }
