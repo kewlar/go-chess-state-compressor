@@ -33,9 +33,7 @@ func (c *HuffmanCompactCoder) Name() string {
 	return "HuffmanCompact"
 }
 
-func (c *HuffmanCompactCoder) FromFen(fen string) *bitfield.BitField {
-	state, _ := chess.ParseFen(fen)
-
+func (c *HuffmanCompactCoder) Encode(state *chess.State) *bitfield.BitField {
 	// Encode en passant in board configuration
 	if state.EnPassant.IsValid() {
 		enPassantPawn := state.EnPassant ^ 8
@@ -81,7 +79,7 @@ func (c *HuffmanCompactCoder) FromFen(fen string) *bitfield.BitField {
 	return bf
 }
 
-func (c *HuffmanCompactCoder) ToFen(data *bitfield.BitField) string {
+func (c *HuffmanCompactCoder) Decode(data *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Piece placement: occupancy.
@@ -142,5 +140,5 @@ func (c *HuffmanCompactCoder) ToFen(data *bitfield.BitField) string {
 		}
 	}
 
-	return state.ToFen()
+	return state
 }

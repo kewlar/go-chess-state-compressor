@@ -35,9 +35,7 @@ func (c *BinaryFenCompactCoder) Name() string {
 	return "BinaryFenCompact"
 }
 
-func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
-	state, _ := chess.ParseFen(fen)
-
+func (c *BinaryFenCompactCoder) Encode(state *chess.State) *bitfield.BitField {
 	// En passant square.
 	enPassantPawn := chess.InvalidSquare
 	if state.EnPassant.IsValid() {
@@ -100,7 +98,7 @@ func (c *BinaryFenCompactCoder) FromFen(fen string) *bitfield.BitField {
 	return bf
 }
 
-func (c *BinaryFenCompactCoder) ToFen(data *bitfield.BitField) string {
+func (c *BinaryFenCompactCoder) Decode(data *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Piece placement: occupancy.
@@ -154,5 +152,5 @@ func (c *BinaryFenCompactCoder) ToFen(data *bitfield.BitField) string {
 		}
 	}
 
-	return state.ToFen()
+	return state
 }

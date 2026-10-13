@@ -1,9 +1,12 @@
 package coders
 
-import "example.com/go-chess/internal/bitfield"
+import (
+	"example.com/go-chess/internal/bitfield"
+	"example.com/go-chess/internal/chess"
+)
 
 type Coder interface {
 	Name() string
-	FromFen(fen string) *bitfield.BitField
-	ToFen(data *bitfield.BitField) string
+	Encode(state *chess.State) *bitfield.BitField
+	Decode(data *bitfield.BitField) *chess.State
 }

@@ -33,9 +33,7 @@ func (c *HuffmanCoder) Name() string {
 	return "Huffman"
 }
 
-func (c *HuffmanCoder) FromFen(fen string) *bitfield.BitField {
-	state, _ := chess.ParseFen(fen)
-
+func (c *HuffmanCoder) Encode(state *chess.State) *bitfield.BitField {
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy := uint64(0)
 	color := uint32(0)
@@ -79,7 +77,7 @@ func (c *HuffmanCoder) FromFen(fen string) *bitfield.BitField {
 	return bf
 }
 
-func (c *HuffmanCoder) ToFen(data *bitfield.BitField) string {
+func (c *HuffmanCoder) Decode(data *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Piece placement: occupancy.
@@ -130,5 +128,5 @@ func (c *HuffmanCoder) ToFen(data *bitfield.BitField) string {
 		}
 	}
 
-	return state.ToFen()
+	return state
 }

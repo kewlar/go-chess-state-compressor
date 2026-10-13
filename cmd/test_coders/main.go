@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"example.com/go-chess/internal/chess"
 	"example.com/go-chess/internal/coders"
 	"example.com/go-chess/internal/reporter"
 )
@@ -21,7 +22,6 @@ func main() {
 	// Configure available coders here.
 	coders := []coders.Coder{
 		coders.NewDummyCoder(),
-		coders.NewFenValidator(),
 		coders.NewBinaryFenCoder(),
 		coders.NewBinaryFenCompactCoder(),
 		coders.NewHuffmanCoder(),
@@ -74,13 +74,17 @@ func main() {
 			if len(fen) == 0 {
 				continue
 			}
-			coded := coder.FromFen(fen)
-			recoded := coder.ToFen(coded)
+			state, err := chess.ParseFen(fen)
+			if err != nil {
+				log.Fatalf("An error occurred while parsing FEN \"%s\": %v", fen, err)
+			}
+			bits := coder.Encode(state)
+			recoded := coder.Decode(bits).ToFen()
 			if fen != recoded {
-				fmt.Printf("Encoded to %s\n", coded.String())
+				fmt.Printf("Encoded to %s\n", bits.String())
 				log.Fatalf("coding with %s coder failed\n  expected: '%s'\n       got: '%s'", coder.Name(), fen, recoded)
 			}
-			reporters[idx].Log(fen, coded.Length)
+			reporters[idx].Log(fen, bits.Length)
 			lines++
 		}
 		benchmarks[idx].Duration = time.Since(start)

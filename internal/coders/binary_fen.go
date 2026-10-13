@@ -28,9 +28,7 @@ func (c *BinaryFenCoder) Name() string {
 	return "BinaryFen"
 }
 
-func (c *BinaryFenCoder) FromFen(fen string) *bitfield.BitField {
-	state, _ := chess.ParseFen(fen)
-
+func (c *BinaryFenCoder) Encode(state *chess.State) *bitfield.BitField {
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy := uint64(0)
 	color := uint32(0)
@@ -73,7 +71,7 @@ func (c *BinaryFenCoder) FromFen(fen string) *bitfield.BitField {
 	return bf
 }
 
-func (c *BinaryFenCoder) ToFen(data *bitfield.BitField) string {
+func (c *BinaryFenCoder) Decode(data *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Piece placement: occupancy.
@@ -119,5 +117,5 @@ func (c *BinaryFenCoder) ToFen(data *bitfield.BitField) string {
 		}
 	}
 
-	return state.ToFen()
+	return state
 }

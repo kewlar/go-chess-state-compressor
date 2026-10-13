@@ -31,9 +31,7 @@ func (c *ArithmeticAdaptiveCoder) Name() string {
 	return "Arithmetic (adaptive)"
 }
 
-func (c *ArithmeticAdaptiveCoder) FromFen(fen string) *bitfield.BitField {
-	state, _ := chess.ParseFen(fen)
-
+func (c *ArithmeticAdaptiveCoder) Encode(state *chess.State) *bitfield.BitField {
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy := uint64(0)
 	color := uint32(0)
@@ -79,7 +77,7 @@ func (c *ArithmeticAdaptiveCoder) FromFen(fen string) *bitfield.BitField {
 	return bf
 }
 
-func (c *ArithmeticAdaptiveCoder) ToFen(data *bitfield.BitField) string {
+func (c *ArithmeticAdaptiveCoder) Decode(data *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Piece placement: occupancy.
@@ -119,5 +117,5 @@ func (c *ArithmeticAdaptiveCoder) ToFen(data *bitfield.BitField) string {
 		}
 	}
 
-	return state.ToFen()
+	return state
 }

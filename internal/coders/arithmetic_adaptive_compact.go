@@ -34,9 +34,7 @@ func (c *ArithmeticAdaptiveCompactCoder) Name() string {
 	return "Arithmetic (adaptive, compact)"
 }
 
-func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField {
-	state, _ := chess.ParseFen(fen)
-
+func (c *ArithmeticAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.BitField {
 	bf := &bitfield.BitField{}
 
 	// Encode starting position.
@@ -155,7 +153,7 @@ func (c *ArithmeticAdaptiveCompactCoder) FromFen(fen string) *bitfield.BitField 
 	return bf
 }
 
-func (c *ArithmeticAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
+func (c *ArithmeticAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Halfmove clock & fullMove number.
@@ -307,5 +305,5 @@ func (c *ArithmeticAdaptiveCompactCoder) ToFen(data *bitfield.BitField) string {
 		}
 	}
 
-	return state.ToFen()
+	return state
 }
