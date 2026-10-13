@@ -1,5 +1,7 @@
 package chess
 
+import "strings"
+
 type Castling map[rune]bool
 
 var CastlingOptions = []rune{'K', 'Q', 'k', 'q'}
@@ -30,4 +32,18 @@ func (c Castling) IsAvailable() bool {
 		}
 	}
 	return false
+}
+
+// String returns castling availability as FEN-compatible string.
+func (c Castling) String() string {
+	if !c.IsAvailable() {
+		return "-"
+	}
+	s := strings.Builder{}
+	for _, option := range CastlingOptions {
+		if c[option] {
+			s.WriteRune(option)
+		}
+	}
+	return s.String()
 }

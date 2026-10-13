@@ -189,16 +189,7 @@ func (state *State) ToFen() string {
 	fen.WriteRune(' ')
 
 	// Castling availability.
-	none := true
-	for _, option := range CastlingOptions {
-		if state.Castling[option] {
-			fen.WriteRune(option)
-			none = false
-		}
-	}
-	if none {
-		fen.WriteRune('-')
-	}
+	fen.WriteString(state.Castling.String())
 	fen.WriteRune(' ')
 
 	// En passant square.
