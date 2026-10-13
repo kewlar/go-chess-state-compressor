@@ -130,9 +130,7 @@ func ParseFen(fen string) (*State, error) {
 		return nil, fmt.Errorf("en passant square must be - or a valid en passant square, got: %s", parts[3])
 	}
 	if parts[3] != "-" {
-		file := parts[3][0] - 'a'
-		rank := parts[3][1] - '1'
-		state.EnPassant = Square((7-rank)*8 + file)
+		state.EnPassant = NewSquare(parts[3])
 	} else {
 		state.EnPassant = InvalidSquare
 	}
