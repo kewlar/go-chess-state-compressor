@@ -4,12 +4,12 @@ import "strings"
 
 type Castling map[rune]bool
 
-var CastlingOptions = []rune{'K', 'Q', 'k', 'q'}
+var castlingOptions = []rune{'K', 'Q', 'k', 'q'}
 
 // NewCastling returns Castling populated with availability for the respective castling options.
 func NewCastling(availability []bool) Castling {
 	castling := Castling{}
-	for idx, option := range CastlingOptions {
+	for idx, option := range castlingOptions {
 		castling[option] = availability[idx]
 	}
 	return castling
@@ -18,7 +18,7 @@ func NewCastling(availability []bool) Castling {
 // BoolSlice returns the boolean values for castling availability for the respective castling options.
 func (c Castling) BoolSlice() []bool {
 	s := []bool{}
-	for _, option := range CastlingOptions {
+	for _, option := range castlingOptions {
 		s = append(s, c[option])
 	}
 	return s
@@ -26,7 +26,7 @@ func (c Castling) BoolSlice() []bool {
 
 // IsAvailable returns true if at least one castling option is available.
 func (c Castling) IsAvailable() bool {
-	for _, option := range CastlingOptions {
+	for _, option := range castlingOptions {
 		if c[option] {
 			return true
 		}
@@ -40,7 +40,7 @@ func (c Castling) String() string {
 		return "-"
 	}
 	s := strings.Builder{}
-	for _, option := range CastlingOptions {
+	for _, option := range castlingOptions {
 		if c[option] {
 			s.WriteRune(option)
 		}

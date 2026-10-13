@@ -121,7 +121,7 @@ func ParseFen(fen string) (*State, error) {
 	if !reCastlingOptions.MatchString(parts[2]) {
 		return nil, fmt.Errorf("expected valid castling options, got: %s", parts[2])
 	}
-	for _, option := range CastlingOptions {
+	for _, option := range castlingOptions {
 		state.Castling[option] = strings.ContainsRune(parts[2], option)
 	}
 
