@@ -21,7 +21,7 @@ type BenchResult struct {
 func main() {
 	// Configure available coders here.
 	coders := []coders.Coder{
-		coders.NewDummyCoder(),
+		coders.NewFenCoder(),
 		coders.NewBinaryFenCoder(),
 		coders.NewBinaryFenCompactCoder(),
 		coders.NewHuffmanCoder(),

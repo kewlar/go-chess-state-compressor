@@ -5,17 +5,17 @@ import (
 	"example.com/go-chess/internal/chess"
 )
 
-type DummyCoder struct{}
+type FenCoder struct{}
 
-func NewDummyCoder() *DummyCoder {
-	return &DummyCoder{}
+func NewFenCoder() *FenCoder {
+	return &FenCoder{}
 }
 
-func (c *DummyCoder) Name() string {
-	return "Dummy"
+func (c *FenCoder) Name() string {
+	return "FEN"
 }
 
-func (c *DummyCoder) Encode(state *chess.State) *bitfield.BitField {
+func (c *FenCoder) Encode(state *chess.State) *bitfield.BitField {
 	fen := state.ToFen()
 	return &bitfield.BitField{
 		Length: (len(fen) + 1) * 8,
@@ -23,7 +23,7 @@ func (c *DummyCoder) Encode(state *chess.State) *bitfield.BitField {
 	}
 }
 
-func (c *DummyCoder) Decode(data *bitfield.BitField) *chess.State {
+func (c *FenCoder) Decode(data *bitfield.BitField) *chess.State {
 	l := data.Length/8 - 1
 	state, err := chess.ParseFen(string(data.Data[:l]))
 	if err != nil {
