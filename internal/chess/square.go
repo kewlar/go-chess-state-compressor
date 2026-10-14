@@ -16,16 +16,25 @@ func NewSquare(coordinates string) Square {
 
 // NewSquareFromRankAndFile returns a Square at given rank and file.
 func NewSquareFromRankAndFile(rank, file int) Square {
+	if rank < 0 || rank > 7 || file < 0 || file > 7 {
+		return InvalidSquare
+	}
 	return Square((7-rank)<<3 + file&7)
 }
 
 // Rank returns the rank of the square, numbered 0 to 7.
 func (s Square) Rank() int {
+	if !s.IsValid() {
+		return -1
+	}
 	return 7 - int(s)>>3
 }
 
 // File returns the file of the square, numbered 0 to 7.
 func (s Square) File() int {
+	if !s.IsValid() {
+		return -1
+	}
 	return int(s) & 7
 }
 
