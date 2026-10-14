@@ -50,5 +50,5 @@ func (s Square) String() string {
 	if !s.IsValid() {
 		return "-"
 	}
-	return string('a'+s.File()) + string('1'+s.Rank())
+	return string([]rune{'a' + rune(s.File()), '1' + rune(s.Rank())})
 }
