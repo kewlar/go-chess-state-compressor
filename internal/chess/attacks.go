@@ -56,7 +56,7 @@ func rayHits(board Board, from, target Square) bool {
 	dr := target.Rank() - from.Rank()
 	df := target.File() - from.File()
 	ur, uf := tools.Sign(dr), tools.Sign(df)
-	if ur != 0 && uf != 0 && tools.Abs(dr) != tools.Abs(df) {
+	if from == target || ur != 0 && uf != 0 && tools.Abs(dr) != tools.Abs(df) {
 		return false // Target square is not on the same file, rank, or diagonal.
 	}
 	r, f := from.Rank()+ur, from.File()+uf
