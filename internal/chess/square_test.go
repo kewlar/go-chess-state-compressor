@@ -52,7 +52,7 @@ func TestNewSquareFromRankAndFile(t *testing.T) {
 	}
 }
 
-func TestRank(t *testing.T) {
+func TestSquareRank(t *testing.T) {
 	tests := []struct {
 		name     string
 		square   chess.Square
@@ -75,7 +75,7 @@ func TestRank(t *testing.T) {
 	}
 }
 
-func TestFile(t *testing.T) {
+func TestSquareFile(t *testing.T) {
 	tests := []struct {
 		name     string
 		square   chess.Square
@@ -98,7 +98,7 @@ func TestFile(t *testing.T) {
 	}
 }
 
-func TestColor(t *testing.T) {
+func TestSquareColor(t *testing.T) {
 	tests := []struct {
 		name     string
 		square   chess.Square
@@ -119,7 +119,7 @@ func TestColor(t *testing.T) {
 	}
 }
 
-func TestIsOnHomeRank(t *testing.T) {
+func TestSquareIsOnHomeRank(t *testing.T) {
 	tests := []struct {
 		name     string
 		square   chess.Square
@@ -144,7 +144,7 @@ func TestIsOnHomeRank(t *testing.T) {
 	}
 }
 
-func TestIsValid(t *testing.T) {
+func TestSquareIsValid(t *testing.T) {
 	tests := []struct {
 		name     string
 		square   chess.Square
@@ -166,7 +166,7 @@ func TestIsValid(t *testing.T) {
 	}
 }
 
-func TestString(t *testing.T) {
+func TestSquareString(t *testing.T) {
 	tests := []struct {
 		name     string
 		square   chess.Square
