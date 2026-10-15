@@ -52,11 +52,13 @@ func Attacks(board Board, from, target Square) bool {
 }
 
 // rayHits returns true if a piece on 'from' square has a line-of-sight visibility to 'target' square without any obstacles.
-// WARNING: This function doesn't check if it's actually possible to hit the target square, and may loop forever.
 func rayHits(board Board, from, target Square) bool {
 	dr := target.Rank() - from.Rank()
 	df := target.File() - from.File()
 	ur, uf := tools.Sign(dr), tools.Sign(df)
+	if ur != 0 && uf != 0 && tools.Abs(dr) != tools.Abs(df) {
+		return false // Target square is not on the same file, rank, or diagonal.
+	}
 	r, f := from.Rank()+ur, from.File()+uf
 	for r != target.Rank() || f != target.File() {
 		square := NewSquareFromRankAndFile(r, f)
