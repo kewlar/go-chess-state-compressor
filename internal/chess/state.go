@@ -26,6 +26,7 @@ var (
 	reEnPassantSquare = regexp.MustCompile(`^(-|[a-h][36])$`)
 )
 
+// NewState returns a blank chess State ready to use.
 func NewState() *State {
 	return &State{
 		Castling:  Castling{},
@@ -33,6 +34,7 @@ func NewState() *State {
 	}
 }
 
+// NewStartingState returns a chess game State initialized to the starting game state.
 func NewStartingState() *State {
 	state := NewState()
 	homeRow := []Piece{Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook}
@@ -53,8 +55,14 @@ func NewStartingState() *State {
 	return state
 }
 
+// ParseFen parses a given FEN and returns the resulting State or an error.
 func ParseFen(fen string) (*State, error) {
 	parts := strings.Fields(fen)
+
+	if len(parts) < 6 {
+		return nil, fmt.Errorf("expected FEN %q to consist of 6 fields, got %d", fen, len(parts))
+	}
+
 	state := NewState()
 
 	// Piece placement
@@ -85,8 +93,11 @@ func ParseFen(fen string) (*State, error) {
 		} else {
 			countBlack++
 		}
-
-		state.Board[NewSquareFromRankAndFile(7-row, col)] = piece
+		square := NewSquareFromRankAndFile(7-row, col)
+		if !square.IsValid() {
+			return nil, fmt.Errorf("got out of board bounds while parsing FEN %q", fen)
+		}
+		state.Board[square] = piece
 
 		col++
 	}
@@ -152,6 +163,7 @@ func ParseFen(fen string) (*State, error) {
 	return state, nil
 }
 
+// ToFen serializes the chess State into a standard FEN.
 func (state *State) ToFen() string {
 	fen := strings.Builder{}
 
