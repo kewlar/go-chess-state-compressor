@@ -27,6 +27,7 @@ const (
 	WhiteKnight Piece = 'N'
 )
 
+// NewPiece returns a new piece, given pieceType and color.
 func NewPiece(pieceType rune, color Color) Piece {
 	p := Piece(pieceType)
 	if color == White {
@@ -35,30 +36,39 @@ func NewPiece(pieceType rune, color Color) Piece {
 	return p
 }
 
+// IsEmpty returns true if piece is an empty square.
 func (p Piece) IsEmpty() bool {
 	return p == Empty
 }
 
+// IsOccupied returns true if the piece is not an empty square.
 func (p Piece) IsOccupied() bool {
 	return p != Empty
 }
 
+// IsValid returns true if piece is either a valid chess piece or an empty square.
 func (p Piece) IsValid() bool {
 	t := p.Type()
 	return p.IsEmpty() || t == Pawn || t == King || t == Queen || t == Rook || t == Bishop || t == Knight
 }
 
+// Type returns the piece type, rejecting color information.
 func (p Piece) Type() Piece {
+	if p == Empty {
+		return p
+	}
 	return p | 32
 }
 
+// Color returns the piece color.
 func (p Piece) Color() Color {
 	return Color(p&32 == 0)
 }
 
+// String returns piece name as a single character FEN/PGN compatible string, with "." standing for empty squares.
 func (p Piece) String() string {
 	if p == Empty {
-		return "."
+		return "." // Useful for rendering chess board in ASCII.
 	}
 
 	return string(rune(p))
