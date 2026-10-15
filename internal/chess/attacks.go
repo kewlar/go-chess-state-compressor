@@ -9,14 +9,14 @@ import (
 // Attacks returns true if the piece in the 'from' square can attack the piece on the 'target' square'.
 func Attacks(board Board, from, target Square) bool {
 	piece := board[from]
-	if piece == 0 {
+	if piece == Empty {
 		return false
 	}
 
 	dr := target.Rank() - from.Rank()
 	df := target.File() - from.File()
 	adr, adf := tools.Abs(dr), tools.Abs(df)
-	switch piece | 32 {
+	switch piece.Type() {
 	case King:
 		if adr <= 1 && adf <= 1 {
 			return true
@@ -39,13 +39,13 @@ func Attacks(board Board, from, target Square) bool {
 		}
 	case Pawn:
 		if adr == 1 && adf == 1 {
-			c := Color(piece&32 == 0)
+			c := piece.Color()
 			if c == White && dr == 1 || c == Black && dr == -1 {
 				return true
 			}
 		}
 	default:
-		panic(fmt.Sprintf("Unexpected piece: '%s'", string(piece)))
+		panic(fmt.Sprintf("Unexpected piece: %q", piece))
 	}
 	return false
 }
