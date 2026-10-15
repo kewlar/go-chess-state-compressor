@@ -21,7 +21,7 @@ func TestFirstWhiteMoves(t *testing.T) {
 	})
 
 	t.Run("Includes e2e4", func(t *testing.T) {
-		expectedMove := chess.Move{From: chess.NewSquare("e2"), To: chess.NewSquare("e4")}
+		expectedMove := chess.Move{From: chess.E2, To: chess.E4}
 		if !slices.Contains(chess.FirstWhiteMoves(), expectedMove) {
 			t.Error("FirstWhiteMoves() did not contain e2e4")
 		}
@@ -42,7 +42,7 @@ func TestFirstBlackMoves(t *testing.T) {
 	})
 
 	t.Run("Includes e2e4", func(t *testing.T) {
-		expectedMove := chess.Move{From: chess.NewSquare("e7"), To: chess.NewSquare("e5")}
+		expectedMove := chess.Move{From: chess.E7, To: chess.E5}
 		if !slices.Contains(chess.FirstBlackMoves(), expectedMove) {
 			t.Error("FirstBlackMoves() did not contain e7e5")
 		}

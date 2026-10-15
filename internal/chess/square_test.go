@@ -6,14 +6,35 @@ import (
 	"example.com/go-chess/internal/chess"
 )
 
+func TestSquareCasting(t *testing.T) {
+	tests := []struct {
+		name     string
+		index    int
+		expected chess.Square
+	}{
+		{name: "a1", index: 56, expected: chess.A1},
+		{name: "h8", index: 7, expected: chess.H8},
+		{name: "Invalid square", index: 64, expected: chess.InvalidSquare},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := chess.Square(tt.index)
+			if actual != tt.expected {
+				t.Errorf("Square(%d) = %s; want %s", tt.index, actual.String(), tt.expected.String())
+			}
+		})
+	}
+}
+
 func TestNewSquare(t *testing.T) {
 	tests := []struct {
 		name        string
 		coordinates string
 		expected    chess.Square
 	}{
-		{name: "a8", coordinates: "a8", expected: chess.Square(0)},
-		{name: "h1", coordinates: "h1", expected: chess.Square(63)},
+		{name: "a8", coordinates: "a8", expected: chess.A8},
+		{name: "h1", coordinates: "h1", expected: chess.H1},
 		{name: "Invalid square (empty)", coordinates: "", expected: chess.InvalidSquare},
 		{name: "Invalid square (zzz)", coordinates: "zzz", expected: chess.InvalidSquare},
 	}
@@ -34,8 +55,8 @@ func TestNewSquareFromRankAndFile(t *testing.T) {
 		rank, file int
 		expected   chess.Square
 	}{
-		{name: "a1", rank: 0, file: 0, expected: chess.Square(56)},
-		{name: "h8", rank: 7, file: 7, expected: chess.Square(7)},
+		{name: "a1", rank: 0, file: 0, expected: chess.A1},
+		{name: "h8", rank: 7, file: 7, expected: chess.H8},
 		{name: "Invalid square (b0)", rank: 1, file: -1, expected: chess.InvalidSquare},
 		{name: "Invalid square (c9)", rank: 2, file: 8, expected: chess.InvalidSquare},
 		{name: "Invalid square (i0)", rank: 8, file: 0, expected: chess.InvalidSquare},
@@ -58,10 +79,10 @@ func TestSquareRank(t *testing.T) {
 		square   chess.Square
 		expected int
 	}{
-		{name: "a1", square: chess.NewSquare("a1"), expected: 0},
-		{name: "a8", square: chess.NewSquare("a8"), expected: 7},
-		{name: "h1", square: chess.NewSquare("h1"), expected: 0},
-		{name: "h8", square: chess.NewSquare("h8"), expected: 7},
+		{name: "a1", square: chess.A1, expected: 0},
+		{name: "a8", square: chess.A8, expected: 7},
+		{name: "h1", square: chess.H1, expected: 0},
+		{name: "h8", square: chess.H8, expected: 7},
 		{name: "Invalid square", square: chess.InvalidSquare, expected: -1},
 	}
 
@@ -81,10 +102,10 @@ func TestSquareFile(t *testing.T) {
 		square   chess.Square
 		expected int
 	}{
-		{name: "a1", square: chess.NewSquare("a1"), expected: 0},
-		{name: "a8", square: chess.NewSquare("a8"), expected: 0},
-		{name: "h1", square: chess.NewSquare("h1"), expected: 7},
-		{name: "h8", square: chess.NewSquare("h8"), expected: 7},
+		{name: "a1", square: chess.A1, expected: 0},
+		{name: "a8", square: chess.A8, expected: 0},
+		{name: "h1", square: chess.H1, expected: 7},
+		{name: "h8", square: chess.H8, expected: 7},
 		{name: "Invalid square", square: chess.InvalidSquare, expected: -1},
 	}
 
@@ -104,10 +125,10 @@ func TestSquareColor(t *testing.T) {
 		square   chess.Square
 		expected chess.Color
 	}{
-		{name: "a1", square: chess.NewSquare("a1"), expected: chess.Black},
-		{name: "a8", square: chess.NewSquare("a8"), expected: chess.White},
-		{name: "h1", square: chess.NewSquare("h1"), expected: chess.White},
-		{name: "h8", square: chess.NewSquare("h8"), expected: chess.Black},
+		{name: "a1", square: chess.A1, expected: chess.Black},
+		{name: "a8", square: chess.A8, expected: chess.White},
+		{name: "h1", square: chess.H1, expected: chess.White},
+		{name: "h8", square: chess.H8, expected: chess.Black},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -125,14 +146,14 @@ func TestSquareIsOnHomeRank(t *testing.T) {
 		square   chess.Square
 		expected bool
 	}{
-		{name: "a1", square: chess.NewSquare("a1"), expected: true},
-		{name: "a8", square: chess.NewSquare("b1"), expected: true},
-		{name: "h1", square: chess.NewSquare("g8"), expected: true},
-		{name: "h8", square: chess.NewSquare("h8"), expected: true},
-		{name: "a1", square: chess.NewSquare("a2"), expected: false},
-		{name: "a8", square: chess.NewSquare("b4"), expected: false},
-		{name: "h1", square: chess.NewSquare("g7"), expected: false},
-		{name: "h8", square: chess.NewSquare("h6"), expected: false},
+		{name: "a1", square: chess.A1, expected: true},
+		{name: "a8", square: chess.B1, expected: true},
+		{name: "h1", square: chess.G8, expected: true},
+		{name: "h8", square: chess.H8, expected: true},
+		{name: "a1", square: chess.A2, expected: false},
+		{name: "a8", square: chess.B4, expected: false},
+		{name: "h1", square: chess.G7, expected: false},
+		{name: "h8", square: chess.H6, expected: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -150,10 +171,10 @@ func TestSquareIsValid(t *testing.T) {
 		square   chess.Square
 		expected bool
 	}{
-		{name: "a1", square: chess.NewSquare("a1"), expected: true},
-		{name: "a8", square: chess.NewSquare("b1"), expected: true},
-		{name: "h1", square: chess.NewSquare("g8"), expected: true},
-		{name: "h8", square: chess.NewSquare("h8"), expected: true},
+		{name: "a1", square: chess.A1, expected: true},
+		{name: "a8", square: chess.B1, expected: true},
+		{name: "h1", square: chess.G8, expected: true},
+		{name: "h8", square: chess.H8, expected: true},
 		{name: "Invalid square", square: chess.InvalidSquare, expected: false},
 	}
 	for _, tt := range tests {
@@ -172,10 +193,10 @@ func TestSquareString(t *testing.T) {
 		square   chess.Square
 		expected string
 	}{
-		{name: "a1", square: chess.NewSquare("a1"), expected: "a1"},
-		{name: "a8", square: chess.NewSquare("b2"), expected: "b2"},
-		{name: "h1", square: chess.NewSquare("g5"), expected: "g5"},
-		{name: "h8", square: chess.NewSquare("h8"), expected: "h8"},
+		{name: "a1", square: chess.A1, expected: "a1"},
+		{name: "a8", square: chess.B2, expected: "b2"},
+		{name: "h1", square: chess.G5, expected: "g5"},
+		{name: "h8", square: chess.H8, expected: "h8"},
 		{name: "Invalid square", square: chess.InvalidSquare, expected: "-"},
 	}
 	for _, tt := range tests {
