@@ -8,14 +8,14 @@ import (
 
 // Attacks returns true if the piece in the 'from' square can attack the piece on the 'target' square'.
 func Attacks(board Board, from, target Square) bool {
-	piece := board[from]
-	if piece == Empty {
+	if board[from].IsEmpty() {
 		return false
 	}
 
 	dr := target.Rank() - from.Rank()
 	df := target.File() - from.File()
 	adr, adf := tools.Abs(dr), tools.Abs(df)
+	piece := board[from]
 	switch piece.Type() {
 	case King:
 		if adr <= 1 && adf <= 1 {
@@ -47,6 +47,7 @@ func Attacks(board Board, from, target Square) bool {
 	default:
 		panic(fmt.Sprintf("Unexpected piece: %q", piece))
 	}
+
 	return false
 }
 
@@ -59,11 +60,12 @@ func rayHits(board Board, from, target Square) bool {
 	r, f := from.Rank()+ur, from.File()+uf
 	for r != target.Rank() || f != target.File() {
 		square := NewSquareFromRankAndFile(r, f)
-		if board[square] != 0 {
+		if board[square].IsOccupied() {
 			return false
 		}
 		r += ur
 		f += uf
 	}
+
 	return true
 }
