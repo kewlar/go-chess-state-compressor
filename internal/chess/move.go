@@ -4,6 +4,7 @@ type Move struct {
 	From, To Square
 }
 
+// FirstWhiteMoves returns the 20 first moves available for White.
 func FirstWhiteMoves() []Move {
 	moves := []Move{}
 	for file := range 8 {
@@ -24,6 +25,7 @@ func FirstWhiteMoves() []Move {
 	return moves
 }
 
+// FirstBlackMoves returns the 20 first moves available for Black.
 func FirstBlackMoves() []Move {
 	moves := []Move{}
 	for file := range 8 {
