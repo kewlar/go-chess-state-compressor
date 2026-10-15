@@ -105,20 +105,20 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 	if state.Castling.IsAvailable() {
 		bf.WriteBoolSlice(state.Castling.BoolSlice())
 		if state.Castling['K'] {
-			skip[chess.NewSquare("e1")] = true
-			skip[chess.NewSquare("h1")] = true
+			skip[chess.E1] = true
+			skip[chess.H1] = true
 		}
 		if state.Castling['Q'] {
-			skip[chess.NewSquare("e1")] = true
-			skip[chess.NewSquare("a1")] = true
+			skip[chess.E1] = true
+			skip[chess.A1] = true
 		}
 		if state.Castling['k'] {
-			skip[chess.NewSquare("e8")] = true
-			skip[chess.NewSquare("h8")] = true
+			skip[chess.E8] = true
+			skip[chess.H8] = true
 		}
 		if state.Castling['q'] {
-			skip[chess.NewSquare("e8")] = true
-			skip[chess.NewSquare("a8")] = true
+			skip[chess.E8] = true
+			skip[chess.A8] = true
 		}
 	}
 
@@ -241,20 +241,20 @@ func (c *ArithmeticAdaptiveCompact2Coder) Decode(data *bitfield.BitField) *chess
 		if hasCastling {
 			state.Castling = chess.NewCastling(data.ReadBoolSlice(4))
 			if state.Castling['K'] {
-				skip[chess.NewSquare("e1")] = true
-				skip[chess.NewSquare("h1")] = true
+				skip[chess.E1] = true
+				skip[chess.H1] = true
 			}
 			if state.Castling['Q'] {
-				skip[chess.NewSquare("e1")] = true
-				skip[chess.NewSquare("a1")] = true
+				skip[chess.E1] = true
+				skip[chess.A1] = true
 			}
 			if state.Castling['k'] {
-				skip[chess.NewSquare("e8")] = true
-				skip[chess.NewSquare("h8")] = true
+				skip[chess.E8] = true
+				skip[chess.H8] = true
 			}
 			if state.Castling['q'] {
-				skip[chess.NewSquare("e8")] = true
-				skip[chess.NewSquare("a8")] = true
+				skip[chess.E8] = true
+				skip[chess.A8] = true
 			}
 		}
 		// En passant square.
@@ -304,12 +304,12 @@ func (c *ArithmeticAdaptiveCompact2Coder) Decode(data *bitfield.BitField) *chess
 			}
 		}
 		if state.Castling['k'] {
-			skip[chess.NewSquare("e8")] = false // Black squares to be added.
-			skip[chess.NewSquare("h8")] = false
+			skip[chess.E8] = false // Black squares to be added.
+			skip[chess.H8] = false
 		}
 		if state.Castling['q'] {
-			skip[chess.NewSquare("e8")] = false
-			skip[chess.NewSquare("a8")] = false
+			skip[chess.E8] = false
+			skip[chess.A8] = false
 		}
 		if state.EnPassant.IsValid() {
 			enPassantPawn := chess.Square(int(state.EnPassant) ^ 0b1000)
