@@ -21,6 +21,7 @@ func bits2bytes(n int) int {
 	return bytes
 }
 
+// IntToBoolSlice convers n bits from a number x into a slice of bools, LSB first.
 func IntToBoolSlice(x uint64, n int) []bool {
 	out := []bool{}
 	for i := range n {
@@ -30,6 +31,7 @@ func IntToBoolSlice(x uint64, n int) []bool {
 	return out
 }
 
+// String renders BitField to string of 1s and 0s.
 func (b *BitField) String() string {
 	parts := make([]string, 0, bits2bytes(b.Length)+1)
 	parts = append(parts, fmt.Sprintf("%d bits:", b.Length))
@@ -52,6 +54,7 @@ func (b *BitField) Bit() int {
 	return b.Length & 7
 }
 
+// WriteInt writes n bits of number i into BitField, LSB first.
 func (b *BitField) WriteInt(i uint64, n int) {
 	b.pad(n)
 	for range n {
@@ -62,6 +65,7 @@ func (b *BitField) WriteInt(i uint64, n int) {
 	}
 }
 
+// WriteBool writes a single bit into BitField.
 func (b *BitField) WriteBool(x bool) {
 	b.pad(1)
 	value := byte(0)
@@ -72,12 +76,14 @@ func (b *BitField) WriteBool(x bool) {
 	b.Length++
 }
 
+// WriteBoolSlice writes a sequence of bits into Bitfield.
 func (b *BitField) WriteBoolSlice(x []bool) {
 	for _, y := range x {
 		b.WriteBool(y)
 	}
 }
 
+// ReadBool reads and returns a single bit of the BitField. It adjusts the BitField read head. If it reads out of bounds, it panics.
 func (b *BitField) ReadBool() bool {
 	if b.ReadHead+1 > b.Length {
 		panic("reading out of bounds")
@@ -87,6 +93,7 @@ func (b *BitField) ReadBool() bool {
 	return b.Data[byte]&(1<<bit) != 0
 }
 
+// ReadBoolSlice reads and returns a sequence of n bits of the BitField. It adjusts the BitField read head. If it reads out of bounds, it panics.
 func (b *BitField) ReadBoolSlice(n int) []bool {
 	if b.ReadHead+n > b.Length {
 		panic("reading out of bounds")
@@ -100,6 +107,7 @@ func (b *BitField) ReadBoolSlice(n int) []bool {
 	return out
 }
 
+// ReadInt reads a sequence of n bits of the BitField and returns it as an unsigned integer. It adjusts the BitField read head. If it reads out of bounds, it panics.
 func (b *BitField) ReadInt(n int) uint64 {
 	if b.ReadHead+n > b.Length {
 		panic("reading out of bounds")
@@ -115,6 +123,7 @@ func (b *BitField) ReadInt(n int) uint64 {
 	return out
 }
 
+// pad pads the BitField with zero bytes needed to write additional n bits into it.
 func (b *BitField) pad(n int) {
 	lenInBytes := bits2bytes(b.Length)
 	newLenInBytes := bits2bytes(b.Length + n)
