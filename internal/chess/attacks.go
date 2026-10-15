@@ -17,27 +17,27 @@ func Attacks(board Board, from, target Square) bool {
 	df := target.File() - from.File()
 	adr, adf := tools.Abs(dr), tools.Abs(df)
 	switch piece | 32 {
-	case 'k':
+	case King:
 		if adr <= 1 && adf <= 1 {
 			return true
 		}
-	case 'q':
+	case Queen:
 		if (adr == adf || adr == 0 || adf == 0) && rayHits(board, from, target) {
 			return true
 		}
-	case 'r':
+	case Rook:
 		if (adr == 0 || adf == 0) && rayHits(board, from, target) {
 			return true
 		}
-	case 'b':
+	case Bishop:
 		if (adr == adf) && rayHits(board, from, target) {
 			return true
 		}
-	case 'n':
+	case Knight:
 		if adr == 2 && adf == 1 || adr == 1 && adf == 2 {
 			return true
 		}
-	case 'p':
+	case Pawn:
 		if adr == 1 && adf == 1 {
 			c := Color(piece&32 == 0)
 			if c == White && dr == 1 || c == Black && dr == -1 {
