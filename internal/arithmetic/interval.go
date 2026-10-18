@@ -67,10 +67,11 @@ func (a *Interval) ToBits() []bool {
 		c = NewBigRational(x, y)
 	}
 
-	out := []bool{}
-	for i := range y.BitLen() {
-		out = append(out, x.Bit(i) == 1)
+	bitCount := y.BitLen() - 1 // The MSB is always 0.
+	out := make([]bool, bitCount)
+	for i := range bitCount {
+		out[i] = x.Bit(i) == 1
 	}
 
-	return out[0 : len(out)-1] // The last bit - MSB - is always 0.
+	return out
 }
