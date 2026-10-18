@@ -60,5 +60,5 @@ func (a *Interval) ToBits() []bool {
 		out = append(out, x.Bit(i) == 1)
 	}
 
-	return out
+	return out[0 : len(out)-1] // The last bit - MSB - is always 0.
 }

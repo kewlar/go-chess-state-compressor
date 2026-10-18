@@ -31,7 +31,7 @@ func NewRationalFromBits(bits []bool) *Rational {
 			z.Num.SetBit(z.Num, i, 1)
 		}
 	}
-	z.Denom.Lsh(z.Denom, uint(len(bits)-1))
+	z.Denom.Lsh(z.Denom, uint(len(bits)))
 
 	return z
 }
