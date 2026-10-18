@@ -10,6 +10,13 @@ type Interval struct {
 	a, b *Rational
 }
 
+var (
+	l  = NewRational(1, 1)
+	a0 = NewRational(1, 1)
+	ba = NewRational(1, 1)
+	bb = NewRational(1, 1)
+)
+
 // NewInterval creates a new interval [a..b).
 func NewInterval(a, b *Rational) *Interval {
 	return &Interval{a, b}
@@ -22,15 +29,12 @@ func (a *Interval) Copy() *Interval {
 
 // Length returns the length of the interval.
 func (a *Interval) Length() *Rational {
-	l := NewRational(1, 1)
-
 	return l.Sub(a.b, a.a)
 }
 
 // Mul multiplies one interval by another. Or, to put it differently, it returns interval a inside interval b.
 func (a *Interval) Mul(b *Interval) *Interval {
 	l := a.Length()
-	a0, ba, bb := NewRational(1, 1), NewRational(1, 1), NewRational(1, 1)
 	a0.Set(a.a)
 	ba.Set(b.a)
 	bb.Set(b.b)
