@@ -25,6 +25,7 @@ func Sign(x int) int {
 	return 0
 }
 
+// EliasGamma returns Elias gamma code for x.
 func EliasGamma(x int) []bool {
 	if x < 1 {
 		return []bool{} // Cannot calculate Elias Gamma value for zero or negative numbers.
@@ -44,6 +45,7 @@ func EliasGamma(x int) []bool {
 	return out
 }
 
+// WithoutSquares removes squares-indexed elements from slice s and returns the result.
 func WithoutSquares(s []bool, squares []int) []bool {
 	out := []bool{}
 	for i, x := range s {
@@ -54,6 +56,7 @@ func WithoutSquares(s []bool, squares []int) []bool {
 	return out
 }
 
+// WithSquares fills in 64-square board s with missing information given in squares.
 func WithSquares(s []bool, squares map[int]bool) []bool {
 	out := []bool{}
 	idx := 0

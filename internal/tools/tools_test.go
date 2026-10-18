@@ -74,3 +74,34 @@ func TestEliasGamma(t *testing.T) {
 		})
 	}
 }
+
+func TestWithoutSquares(t *testing.T) {
+	input := []bool{false, true, true, false, true, false, true, false}
+	squares := []int{1, 3, 4, 5}
+	expected := []bool{false, true, true, false}
+	actual := tools.WithoutSquares(input, squares)
+	if !slices.Equal(actual, expected) {
+		t.Errorf("WithoutSquares(%#v, %#v) = %#v; expected %#v", input, squares, actual, expected)
+	}
+}
+
+func TestWithSquares(t *testing.T) {
+	input := make([]bool, 32)
+	for i := range 32 {
+		input[i] = i < 16
+	}
+	squares := map[int]bool{}
+	for i := range 32 {
+		j := i*2 + 1
+		squares[j] = i >= 16
+	}
+	expectedString := "1010101010101010101010101010101001010101010101010101010101010101"
+	expected := make([]bool, 64)
+	for i := range 64 {
+		expected[i] = expectedString[i] == '1'
+	}
+	actual := tools.WithSquares(input, squares)
+	if !slices.Equal(actual, expected) {
+		t.Errorf("WithSquares(%#v, %#v) = %#v; expected %#v", input, squares, actual, expected)
+	}
+}
