@@ -5,20 +5,29 @@ import (
 	"math/big"
 )
 
+// Interval represents an interval between two Rationals [a..b).
 type Interval struct {
 	a, b *Rational
 }
 
+// NewInterval creates a new interval [a..b).
 func NewInterval(a, b *Rational) *Interval {
 	return &Interval{a, b}
 }
 
+// Copy returns a copy of interval a.
+func (a *Interval) Copy() *Interval {
+	return NewInterval(a.a, a.b)
+}
+
+// Length returns the length of the interval.
 func (a *Interval) Length() *Rational {
 	l := NewRational(1, 1)
 
 	return l.Sub(a.b, a.a)
 }
 
+// Mul multiplies one interval by another. Or, to put it differently, it returns interval a inside interval b.
 func (a *Interval) Mul(b *Interval) *Interval {
 	l := a.Length()
 	a0, ba, bb := NewRational(1, 1), NewRational(1, 1), NewRational(1, 1)
@@ -31,14 +40,17 @@ func (a *Interval) Mul(b *Interval) *Interval {
 	return a
 }
 
+// Cover returns true if x falls inside interval a (a.a <= x < a.b.).
 func (a *Interval) Cover(x *Rational) bool {
 	return x.Cmp(a.a) != -1 && x.Cmp(a.b) == -1
 }
 
+// String renders interval to string.
 func (a *Interval) String() string {
 	return fmt.Sprintf("[%s-%s)", a.a.String(), a.b.String())
 }
 
+// ToBits returns the shortest binary code that represents a Rational fraction inside interval a.
 func (a *Interval) ToBits() []bool {
 	x, y := big.NewInt(0), big.NewInt(1)
 	x1, one := big.NewInt(0), big.NewInt(1)
