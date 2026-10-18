@@ -2,7 +2,6 @@
 package tools
 
 import (
-	"maps"
 	"slices"
 )
 
@@ -60,10 +59,9 @@ func WithoutSquares(s []bool, squares []int) []bool {
 func WithSquares(s []bool, squares map[int]bool) []bool {
 	out := []bool{}
 	idx := 0
-	keys := slices.Collect(maps.Keys(squares))
 	for i := range 64 {
-		if slices.Contains(keys, i) {
-			out = append(out, squares[i])
+		if value, ok := squares[i]; ok {
+			out = append(out, value)
 		} else {
 			out = append(out, s[idx])
 			idx++
