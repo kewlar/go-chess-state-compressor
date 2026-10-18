@@ -15,6 +15,8 @@ var (
 	a0 = NewRational(1, 1)
 	ba = NewRational(1, 1)
 	bb = NewRational(1, 1)
+	c  = NewRational(1, 1)
+	d  = NewRational(1, 1)
 )
 
 // NewInterval creates a new interval [a..b).
@@ -58,17 +60,19 @@ func (a *Interval) String() string {
 func (a *Interval) ToBits() []bool {
 	x, y := big.NewInt(0), big.NewInt(1)
 	x1, one := big.NewInt(0), big.NewInt(1)
-	c := NewBigRational(x, y)
+	c.Num.Set(x)
+	c.Denom.Set(y)
 	for c.Cmp(a.a) == -1 || c.Cmp(a.b) != -1 {
 		x.Lsh(x, 1)
 		y.Lsh(y, 1)
-		d := NewBigRational(x, y)
 		x1 = x1.Or(x, one)
-		e := NewBigRational(x1, y)
-		if d.Cmp(a.a) == -1 && e.Cmp(a.b) == -1 {
+		d.Num.Set(x1)
+		d.Denom.Set(y)
+		if c.Cmp(a.a) == -1 && d.Cmp(a.b) == -1 {
 			x.Set(x1)
 		}
-		c = NewBigRational(x, y)
+		c.Num.Set(x)
+		c.Denom.Set(y)
 	}
 
 	bitCount := y.BitLen() - 1 // The MSB is always 0.
