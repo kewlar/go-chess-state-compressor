@@ -54,7 +54,7 @@ func (z *Rational) Add(x, y *Rational) *Rational {
 	b.Mul(y.Num, x.Denom)
 	z.Num.Add(a, b)
 	z.Denom.Mul(x.Denom, y.Denom)
-	z.Simplify()
+	z.Reduce()
 	return z
 }
 
@@ -65,25 +65,25 @@ func (z *Rational) Sub(x, y *Rational) *Rational {
 	b.Mul(y.Num, x.Denom)
 	z.Num.Sub(a, b)
 	z.Denom.Mul(x.Denom, y.Denom)
-	z.Simplify()
+	z.Reduce()
 	return z
 }
 
 func (z *Rational) Mul(x, y *Rational) *Rational {
 	z.Num.Mul(x.Num, y.Num)
 	z.Denom.Mul(x.Denom, y.Denom)
-	z.Simplify()
+	z.Reduce()
 	return z
 }
 
 func (z *Rational) Div(x, y *Rational) *Rational {
 	z.Num.Mul(x.Num, y.Denom)
 	z.Denom.Mul(x.Denom, y.Num)
-	z.Simplify()
+	z.Reduce()
 	return z
 }
 
-func (z *Rational) Simplify() {
+func (z *Rational) Reduce() {
 	a := big.NewInt(0)
 	a.GCD(nil, nil, z.Num, z.Denom)
 	z.Num.Div(z.Num, a)
