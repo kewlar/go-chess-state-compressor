@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -10,18 +11,27 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
+		log.Println("Converts PGN file into a series of FENs.")
+		log.Println("If filename is \"-\", reads from standard input.")
+		log.Println()
 		log.Fatalf("Usage: %s <path-to-file.pgn>", os.Args[0])
 	}
-	filePath := os.Args[1]
 
-	f, err := os.Open(filePath)
-	if err != nil {
-		log.Fatalf("Error opening file: %v", err)
+	filePath := os.Args[1]
+	var reader io.Reader
+	if filePath == "-" { // Standard input
+		reader = os.Stdin
+	} else { // Regular file
+		f, err := os.Open(filePath)
+		if err != nil {
+			log.Fatalf("Error opening file: %v", err)
+		}
+		defer f.Close()
+		reader = f
 	}
-	defer f.Close()
 
 	// Initialize the streaming PGN scanner from v2
-	scanner := chess.NewScanner(f)
+	scanner := chess.NewScanner(reader)
 
 	if !scanner.HasNext() {
 		fmt.Println(scanner.LastError())
