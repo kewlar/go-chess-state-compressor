@@ -6,12 +6,11 @@ import (
 	"os"
 
 	"github.com/corentings/chess/v2"
-	"github.com/klauspost/compress/zstd"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatalf("Usage: %s <path-to-file.pgn.zst>", os.Args[0])
+		log.Fatalf("Usage: %s <path-to-file.pgn>", os.Args[0])
 	}
 	filePath := os.Args[1]
 
@@ -21,15 +20,8 @@ func main() {
 	}
 	defer f.Close()
 
-	// Initialize streaming zstd reader
-	zstdReader, err := zstd.NewReader(f)
-	if err != nil {
-		log.Fatalf("Error creating zstd reader: %v", err)
-	}
-	defer zstdReader.Close()
-
 	// Initialize the streaming PGN scanner from v2
-	scanner := chess.NewScanner(zstdReader)
+	scanner := chess.NewScanner(f)
 
 	for scanner.HasNext() {
 		game, err := scanner.ParseNext()
