@@ -11,10 +11,11 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Println("Converts PGN file into a series of FENs.")
-		log.Println("If filename is \"-\", reads from standard input.")
-		log.Println()
-		log.Fatalf("Usage: %s <path-to-file.pgn>", os.Args[0])
+		fmt.Println("Converts PGN file into a series of FENs.")
+		fmt.Println("If filename is \"-\", reads from standard input.")
+		fmt.Println()
+		fmt.Printf("Usage: %s <path-to-file.pgn>", os.Args[0])
+		os.Exit(0)
 	}
 
 	filePath := os.Args[1]
