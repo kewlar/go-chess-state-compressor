@@ -23,6 +23,10 @@ func main() {
 	// Initialize the streaming PGN scanner from v2
 	scanner := chess.NewScanner(f)
 
+	if !scanner.HasNext() {
+		fmt.Println(scanner.LastError())
+	}
+
 	for scanner.HasNext() {
 		game, err := scanner.ParseNext()
 		if err != nil {
