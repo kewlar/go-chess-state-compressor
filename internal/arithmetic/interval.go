@@ -24,11 +24,6 @@ func NewInterval(a, b *Rational) *Interval {
 	return &Interval{a, b}
 }
 
-// Copy returns a copy of interval a.
-func (a *Interval) Copy() *Interval {
-	return NewInterval(a.a, a.b)
-}
-
 // Length returns the length of the interval.
 func (a *Interval) Length() *Rational {
 	return l.Sub(a.b, a.a)

@@ -50,7 +50,7 @@ func TestIntervalMul(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := tt.a.Copy()
+			a := tt.a
 			a.Mul(tt.b)
 			actual := a.String()
 			if actual != tt.expected {

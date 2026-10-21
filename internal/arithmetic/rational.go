@@ -46,13 +46,6 @@ func NewRationalFromBits(bits []bool) *Rational {
 	return z
 }
 
-// Copy returns a copy of z.
-func (z *Rational) Copy() *Rational {
-	y := NewRational(0, 1)
-	y.Set(z)
-	return y
-}
-
 // Set sets z to y.
 func (z *Rational) Set(y *Rational) {
 	z.Num.Set(y.Num)
