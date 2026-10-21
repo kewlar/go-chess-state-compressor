@@ -10,12 +10,6 @@ type Rational struct {
 	Num, Denom *big.Int
 }
 
-var (
-	// Temporary variables for calculations, to avoid allocating big.Ints on every operation.
-	a = big.NewInt(0)
-	b = big.NewInt(0)
-)
-
 // NewRational creates a new Rational with numerator num and denominator denom.
 func NewRational(num, denom int64) *Rational {
 	return &Rational{
@@ -54,9 +48,15 @@ func (z *Rational) Set(y *Rational) {
 
 // Add sets z to the sum x+y and returns z.
 func (z *Rational) Add(x, y *Rational) *Rational {
-	a.Mul(x.Num, y.Denom)
-	b.Mul(y.Num, x.Denom)
-	z.Num.Add(a, b)
+	tmp := getScratch()
+	defer putScratch(tmp)
+	return z.add(x, y, tmp)
+}
+
+func (z *Rational) add(x, y *Rational, tmp *scratch) *Rational {
+	tmp.a.Mul(x.Num, y.Denom)
+	tmp.b.Mul(y.Num, x.Denom)
+	z.Num.Add(tmp.a, tmp.b)
 	z.Denom.Mul(x.Denom, y.Denom)
 	z.Reduce()
 	return z
@@ -64,9 +64,15 @@ func (z *Rational) Add(x, y *Rational) *Rational {
 
 // Sub sets z to the difference x-y and returns z.
 func (z *Rational) Sub(x, y *Rational) *Rational {
-	a.Mul(x.Num, y.Denom)
-	b.Mul(y.Num, x.Denom)
-	z.Num.Sub(a, b)
+	tmp := getScratch()
+	defer putScratch(tmp)
+	return z.sub(x, y, tmp)
+}
+
+func (z *Rational) sub(x, y *Rational, tmp *scratch) *Rational {
+	tmp.a.Mul(x.Num, y.Denom)
+	tmp.b.Mul(y.Num, x.Denom)
+	z.Num.Sub(tmp.a, tmp.b)
 	z.Denom.Mul(x.Denom, y.Denom)
 	z.Reduce()
 	return z
@@ -90,9 +96,15 @@ func (z *Rational) Div(x, y *Rational) *Rational {
 
 // Reduce reduces z by dividing z.Num and z.Denom by their greatest common denominator, so that z.Num and z.Denom become coprime, and the ratio cannot be further reduced.
 func (z *Rational) Reduce() {
-	a.GCD(nil, nil, z.Num, z.Denom)
-	z.Num.Div(z.Num, a)
-	z.Denom.Div(z.Denom, a)
+	tmp := getScratch()
+	defer putScratch(tmp)
+	z.reduce(tmp)
+}
+
+func (z *Rational) reduce(tmp *scratch) {
+	tmp.a.GCD(nil, nil, z.Num, z.Denom)
+	z.Num.Div(z.Num, tmp.a)
+	z.Denom.Div(z.Denom, tmp.a)
 }
 
 // String returns the ratio as string "<num>/<denom>".
@@ -105,10 +117,16 @@ func (z *Rational) String() string {
 //   - 0 if x == y;
 //   - +1 if x > y.
 func (x *Rational) Cmp(y *Rational) int {
-	a.Mul(x.Num, y.Denom)
-	b.Mul(y.Num, x.Denom)
+	tmp := getScratch()
+	defer putScratch(tmp)
+	return x.cmp(y, tmp)
+}
 
-	return a.Cmp(b)
+func (x *Rational) cmp(y *Rational, tmp *scratch) int {
+	tmp.a.Mul(x.Num, y.Denom)
+	tmp.b.Mul(y.Num, x.Denom)
+
+	return tmp.a.Cmp(tmp.b)
 }
 
 // ScaleWithInterval performs z = (z - i.a) / i.Length(). z, i.a, and i.b are all in range [0, 1).

@@ -10,15 +10,6 @@ type Interval struct {
 	a, b *Rational
 }
 
-var (
-	l  = NewRational(1, 1)
-	a0 = NewRational(1, 1)
-	ba = NewRational(1, 1)
-	bb = NewRational(1, 1)
-	c  = NewRational(1, 1)
-	d  = NewRational(1, 1)
-)
-
 // NewInterval creates a new interval [a..b).
 func NewInterval(a, b *Rational) *Interval {
 	return &Interval{a, b}
@@ -26,17 +17,29 @@ func NewInterval(a, b *Rational) *Interval {
 
 // Length returns the length of the interval.
 func (a *Interval) Length() *Rational {
-	return l.Sub(a.b, a.a)
+	tmp := getScratch()
+	defer putScratch(tmp)
+	return a.length(tmp)
+}
+
+func (a *Interval) length(tmp *scratch) *Rational {
+	return tmp.l.Sub(a.b, a.a)
 }
 
 // Mul multiplies one interval by another. Or, to put it differently, it returns interval a inside interval b.
 func (a *Interval) Mul(b *Interval) *Interval {
+	tmp := getScratch()
+	defer putScratch(tmp)
+	return a.mul(b, tmp)
+}
+
+func (a *Interval) mul(b *Interval, tmp *scratch) *Interval {
 	l := a.Length()
-	a0.Set(a.a)
-	ba.Set(b.a)
-	bb.Set(b.b)
-	a.a.Add(a0, ba.Mul(ba, l))
-	a.b.Add(a0, bb.Mul(bb, l))
+	tmp.a0.Set(a.a)
+	tmp.ba.Set(b.a)
+	tmp.bb.Set(b.b)
+	a.a.Add(tmp.a0, tmp.ba.Mul(tmp.ba, l))
+	a.b.Add(tmp.a0, tmp.bb.Mul(tmp.bb, l))
 
 	return a
 }
@@ -53,21 +56,27 @@ func (a *Interval) String() string {
 
 // ToBits returns the shortest binary code that represents a Rational fraction inside interval a.
 func (a *Interval) ToBits() []bool {
+	tmp := getScratch()
+	defer putScratch(tmp)
+	return a.toBits(tmp)
+}
+
+func (a *Interval) toBits(tmp *scratch) []bool {
 	x, y := big.NewInt(0), big.NewInt(1)
 	x1, one := big.NewInt(0), big.NewInt(1)
-	c.Num.Set(x)
-	c.Denom.Set(y)
-	for c.Cmp(a.a) == -1 || c.Cmp(a.b) != -1 {
+	tmp.c.Num.Set(x)
+	tmp.c.Denom.Set(y)
+	for tmp.c.Cmp(a.a) == -1 || tmp.c.Cmp(a.b) != -1 {
 		x.Lsh(x, 1)
 		y.Lsh(y, 1)
 		x1 = x1.Or(x, one)
-		d.Num.Set(x1)
-		d.Denom.Set(y)
-		if c.Cmp(a.a) == -1 && d.Cmp(a.b) == -1 {
+		tmp.d.Num.Set(x1)
+		tmp.d.Denom.Set(y)
+		if tmp.c.Cmp(a.a) == -1 && tmp.d.Cmp(a.b) == -1 {
 			x.Set(x1)
 		}
-		c.Num.Set(x)
-		c.Denom.Set(y)
+		tmp.c.Num.Set(x)
+		tmp.c.Denom.Set(y)
 	}
 
 	bitCount := y.BitLen() - 1 // The MSB is always 0.
