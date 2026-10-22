@@ -35,17 +35,18 @@ func (c *HuffmanCompactCoder) Name() string {
 
 func (c *HuffmanCompactCoder) Encode(state *chess.State) *bitfield.BitField {
 	// Encode en passant in board configuration
+	board := state.Board
 	if state.EnPassant.IsValid() {
 		enPassantPawn := state.EnPassant ^ 8
 		homeRankSquare := state.EnPassant ^ 16
-		state.Board[enPassantPawn], state.Board[homeRankSquare] = state.Board[homeRankSquare], state.Board[enPassantPawn]
+		board[enPassantPawn], board[homeRankSquare] = board[homeRankSquare], board[enPassantPawn]
 	}
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy := uint64(0)
 	color := uint32(0)
 	pieces := []chess.Piece{}
-	for cell, piece := range state.Board {
+	for cell, piece := range board {
 		if piece.IsEmpty() {
 			continue
 		}

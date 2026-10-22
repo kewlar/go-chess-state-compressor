@@ -77,6 +77,14 @@ func TestCodersRoundTrip(t *testing.T) {
 			name: "Typical puzzle without movecount (2)",
 			fen:  "4R3/8/8/2Pkp3/N5K1/4r2B/1nb4n/b1r5 w - - 2 2",
 		},
+		{
+			name: "e4 (en passant)",
+			fen:  "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+		},
+		{
+			name: "e5 (en passant)",
+			fen:  "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",
+		},
 	}
 	coders := []coders.Coder{
 		coders.NewFenCoder(),
@@ -101,6 +109,9 @@ func TestCodersRoundTrip(t *testing.T) {
 				decodedFen := decoded.ToFen()
 				if position.fen != decodedFen {
 					t.Errorf("Decode(Encode(%q)) = %q; expected %q", position.fen, decodedFen, position.fen)
+				}
+				if state.ToFen() != position.fen {
+					t.Errorf("Encode(%q) changed the state; expected state not to change", position.fen)
 				}
 			})
 		}
