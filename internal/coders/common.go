@@ -4,6 +4,7 @@ import (
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
 	"example.com/go-chess/internal/entropy"
+	"example.com/go-chess/internal/tools"
 )
 
 // TryEncodeEarlyPosition tries to encode one of the 421 positions possible in first 3 plies in a single magic number. Returns the bitfield and bool true if succeeded, nil and false otherwise.
@@ -56,4 +57,61 @@ func startingPositionDiff(board chess.Board) map[chess.Square]chess.Piece {
 		}
 	}
 	return diff
+}
+
+func TryDecodeEarlyPosition(moveNum int, data *bitfield.BitField) (*chess.State, bool) {
+	var state *chess.State
+	switch moveNum {
+	case 0:
+		state = chess.NewStartingState()
+	case 1:
+		num := int(data.ReadInt(5))
+		state = chess.NewStartingState()
+		move := chess.FirstWhiteMoves()[num]
+		state.Board[move.To] = state.Board[move.From]
+		state.Board[move.From] = chess.Empty
+		if state.Board[move.To].Type() == chess.Pawn && tools.Abs(move.From.Rank()-move.To.Rank()) == 2 {
+			state.EnPassant = chess.NewSquareFromRankAndFile((move.From.Rank()+move.To.Rank())/2, move.To.File())
+		}
+		if state.Board[move.To].Type() != chess.Pawn {
+			state.Halfmove++
+		}
+		state.SideToMove = chess.Black
+	case 2:
+		num := int(data.ReadInt(9))
+		whiteMove, blackMove := num/20, num%20
+
+		state = chess.NewStartingState()
+		// Apply move by White.
+		move := chess.FirstWhiteMoves()[whiteMove]
+		state.Board[move.To] = state.Board[move.From]
+		state.Board[move.From] = chess.Empty
+		if state.Board[move.To].Type() == chess.Pawn && tools.Abs(move.From.Rank()-move.To.Rank()) == 2 {
+			state.EnPassant = chess.NewSquareFromRankAndFile((move.From.Rank()+move.To.Rank())/2, move.To.File())
+		}
+		if state.Board[move.To].Type() != chess.Pawn {
+			state.Halfmove++
+		}
+		// Apply move by Black.
+		move = chess.FirstBlackMoves()[blackMove]
+		state.Board[move.To] = state.Board[move.From]
+		state.Board[move.From] = chess.Empty
+		if state.Board[move.To].Type() == chess.Pawn && tools.Abs(move.From.Rank()-move.To.Rank()) == 2 {
+			state.EnPassant = chess.NewSquareFromRankAndFile((move.From.Rank()+move.To.Rank())/2, move.To.File())
+		} else {
+			state.EnPassant = chess.InvalidSquare
+		}
+		if state.Board[move.To].Type() != chess.Pawn {
+			state.Halfmove++
+		} else {
+			state.Halfmove = 0
+		}
+
+		state.Fullmove = 2
+		state.SideToMove = chess.White
+	default:
+		return nil, false
+	}
+
+	return state, true
 }

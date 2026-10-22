@@ -8,7 +8,6 @@ import (
 	"example.com/go-chess/internal/chess"
 	"example.com/go-chess/internal/entropy"
 	"example.com/go-chess/internal/huffman"
-	"example.com/go-chess/internal/tools"
 )
 
 type HuffmanAdaptiveCompactCoder struct {
@@ -154,176 +153,130 @@ func (c *HuffmanAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.BitFi
 }
 
 func (c *HuffmanAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.State {
-	state := chess.NewState()
-
 	// Halfmove clock & fullMove number.
 	moveNum := int(data.ReadInt(21))
-	switch moveNum {
-	case 0:
-		state = chess.NewStartingState()
-	case 1:
-		num := int(data.ReadInt(5))
-		state = chess.NewStartingState()
-		move := chess.FirstWhiteMoves()[num]
-		state.Board[move.To] = state.Board[move.From]
-		state.Board[move.From] = chess.Empty
-		if state.Board[move.To].Type() == chess.Pawn && tools.Abs(move.From.Rank()-move.To.Rank()) == 2 {
-			state.EnPassant = chess.NewSquareFromRankAndFile((move.From.Rank()+move.To.Rank())/2, move.To.File())
+
+	if state, ok := TryDecodeEarlyPosition(moveNum, data); ok {
+		return state
+	}
+
+	state := chess.NewState()
+	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
+
+	// Castling availability.
+	hasCastling := data.ReadBool()
+	if hasCastling {
+		state.Castling = chess.NewCastling(data.ReadBoolSlice(4))
+	}
+	// En passant square.
+	hasEnPassant := data.ReadBool()
+	enPassantFile := -1
+	if hasEnPassant {
+		enPassantFile = int(data.ReadInt(3))
+	}
+
+	// Piece placement: occupancy.
+	occupancy := data.ReadBoolSlice(64)
+	pieceCount := 0
+	for _, occupied := range occupancy {
+		if occupied {
+			pieceCount++
 		}
-		if state.Board[move.To].Type() != chess.Pawn {
-			state.Halfmove++
+	}
+
+	state.SideToMove = chess.White
+	if pieceCount > 32 {
+		for i, x := range occupancy {
+			occupancy[i] = !x
 		}
+		pieceCount = 64 - pieceCount
 		state.SideToMove = chess.Black
-	case 2:
-		num := int(data.ReadInt(9))
-		whiteMove, blackMove := num/20, num%20
+	}
 
-		state = chess.NewStartingState()
-		// Apply move by White.
-		move := chess.FirstWhiteMoves()[whiteMove]
-		state.Board[move.To] = state.Board[move.From]
-		state.Board[move.From] = chess.Empty
-		if state.Board[move.To].Type() == chess.Pawn && tools.Abs(move.From.Rank()-move.To.Rank()) == 2 {
-			state.EnPassant = chess.NewSquareFromRankAndFile((move.From.Rank()+move.To.Rank())/2, move.To.File())
-		}
-		if state.Board[move.To].Type() != chess.Pawn {
-			state.Halfmove++
-		}
-		// Apply move by Black.
-		move = chess.FirstBlackMoves()[blackMove]
-		state.Board[move.To] = state.Board[move.From]
-		state.Board[move.From] = chess.Empty
-		if state.Board[move.To].Type() == chess.Pawn && tools.Abs(move.From.Rank()-move.To.Rank()) == 2 {
-			state.EnPassant = chess.NewSquareFromRankAndFile((move.From.Rank()+move.To.Rank())/2, move.To.File())
-		} else {
-			state.EnPassant = chess.InvalidSquare
-		}
-		if state.Board[move.To].Type() != chess.Pawn {
-			state.Halfmove++
-		} else {
-			state.Halfmove = 0
-		}
+	// Side to move.
+	if pieceCount == 32 {
+		state.SideToMove = chess.Color(data.ReadBool())
+	}
 
-		state.Fullmove = 2
-		state.SideToMove = chess.White
-	default:
-		state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
+	// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
+	originalColorRanks := state.Fullmove < 3 || state.Fullmove == 3 && state.SideToMove == chess.White
+	maybeOriginalColorRanks := originalColorRanks
+	if maybeOriginalColorRanks {
+		originalColorRanks = data.ReadBool()
+	}
 
-		// Castling availability.
-		hasCastling := data.ReadBool()
-		if hasCastling {
-			state.Castling = chess.NewCastling(data.ReadBoolSlice(4))
-		}
-		// En passant square.
-		hasEnPassant := data.ReadBool()
-		enPassantFile := -1
-		if hasEnPassant {
-			enPassantFile = int(data.ReadInt(3))
-		}
-
-		// Piece placement: occupancy.
-		occupancy := data.ReadBoolSlice(64)
-		pieceCount := 0
-		for _, occupied := range occupancy {
-			if occupied {
-				pieceCount++
+	// Piece placement: colors.
+	colorCount := pieceCount
+	numBlack, numWhite := 0, 0
+	if originalColorRanks {
+		colorCount = 0
+		for i, x := range occupancy {
+			c := chess.Square(i)
+			if !x {
+				continue
+			}
+			switch c.Rank() {
+			case 6, 7:
+				numBlack++
+			case 0, 1:
+				numWhite++
+			default:
+				colorCount++
 			}
 		}
-
-		state.SideToMove = chess.White
-		if pieceCount > 32 {
-			for i, x := range occupancy {
-				occupancy[i] = !x
-			}
-			pieceCount = 64 - pieceCount
-			state.SideToMove = chess.Black
+	}
+	colors := data.ReadBoolSlice(colorCount)
+	if originalColorRanks {
+		blacks := []bool{}
+		for range numBlack {
+			blacks = append(blacks, false)
 		}
-
-		// Side to move.
-		if pieceCount == 32 {
-			state.SideToMove = chess.Color(data.ReadBool())
+		whites := []bool{}
+		for range numWhite {
+			whites = append(whites, true)
 		}
+		colors = append(blacks, colors...)
+		colors = append(colors, whites...)
+	}
 
-		// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
-		originalColorRanks := state.Fullmove < 3 || state.Fullmove == 3 && state.SideToMove == chess.White
-		maybeOriginalColorRanks := originalColorRanks
-		if maybeOriginalColorRanks {
-			originalColorRanks = data.ReadBool()
+	// Finish decoding en passant square.
+	if hasEnPassant {
+		rank := 2
+		if state.SideToMove == chess.White {
+			rank = 5
 		}
+		state.EnPassant = chess.NewSquareFromRankAndFile(rank, enPassantFile)
+	}
 
-		// Piece placement: colors.
-		colorCount := pieceCount
-		numBlack, numWhite := 0, 0
-		if originalColorRanks {
-			colorCount = 0
-			for i, x := range occupancy {
-				c := chess.Square(i)
-				if !x {
-					continue
-				}
-				switch c.Rank() {
-				case 6, 7:
-					numBlack++
-				case 0, 1:
-					numWhite++
-				default:
-					colorCount++
-				}
+	// Piece placement: pieces.
+	freqs := entropy.PrepareFrequencies(pieceCount, c.frequencies)
+	pieces := make([]rune, 0, pieceCount)
+	idx := 0
+	for square, occupied := range occupancy {
+		if occupied {
+			freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(square), pieceCount, occupancy, colors, state, pieces)
+			tree := huffman.BuildHuffmanTree(freqs2)
+
+			node := tree
+			for !node.IsLeaf() {
+				bit := data.ReadBool()
+				node = node.Children[bit]
 			}
+			piece := node.Value
+			pieces = append(pieces, piece)
+
+			idx++
+
+			freqs = entropy.UpdateFrequencies(piece, pieceCount-idx, freqs)
 		}
-		colors := data.ReadBoolSlice(colorCount)
-		if originalColorRanks {
-			blacks := []bool{}
-			for range numBlack {
-				blacks = append(blacks, false)
-			}
-			whites := []bool{}
-			for range numWhite {
-				whites = append(whites, true)
-			}
-			colors = append(blacks, colors...)
-			colors = append(colors, whites...)
-		}
+	}
 
-		// Finish decoding en passant square.
-		if hasEnPassant {
-			rank := 2
-			if state.SideToMove == chess.White {
-				rank = 5
-			}
-			state.EnPassant = chess.NewSquareFromRankAndFile(rank, enPassantFile)
-		}
-
-		// Piece placement: pieces.
-		freqs := entropy.PrepareFrequencies(pieceCount, c.frequencies)
-		pieces := make([]rune, 0, pieceCount)
-		idx := 0
-		for square, occupied := range occupancy {
-			if occupied {
-				freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(square), pieceCount, occupancy, colors, state, pieces)
-				tree := huffman.BuildHuffmanTree(freqs2)
-
-				node := tree
-				for !node.IsLeaf() {
-					bit := data.ReadBool()
-					node = node.Children[bit]
-				}
-				piece := node.Value
-				pieces = append(pieces, piece)
-
-				idx++
-
-				freqs = entropy.UpdateFrequencies(piece, pieceCount-idx, freqs)
-			}
-		}
-
-		// Piece placement.
-		idx = 0
-		for i, occupied := range occupancy {
-			if occupied {
-				state.Board[i] = chess.NewPiece(pieces[idx], chess.Color(colors[idx]))
-				idx++
-			}
+	// Piece placement.
+	idx = 0
+	for i, occupied := range occupancy {
+		if occupied {
+			state.Board[i] = chess.NewPiece(pieces[idx], chess.Color(colors[idx]))
+			idx++
 		}
 	}
 
