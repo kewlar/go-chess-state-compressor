@@ -38,15 +38,21 @@ func (a *Interval) mul(b *Interval, tmp *scratch) *Interval {
 	tmp.a0.Set(a.a)
 	tmp.ba.Set(b.a)
 	tmp.bb.Set(b.b)
-	a.a.Add(tmp.a0, tmp.ba.Mul(tmp.ba, l))
-	a.b.Add(tmp.a0, tmp.bb.Mul(tmp.bb, l))
+	a.a.add(tmp.a0, tmp.ba.mul(tmp.ba, l, tmp), tmp)
+	a.b.add(tmp.a0, tmp.bb.mul(tmp.bb, l, tmp), tmp)
 
 	return a
 }
 
 // Cover returns true if x falls inside interval a (a.a <= x < a.b.).
 func (a *Interval) Cover(x *Rational) bool {
-	return x.Cmp(a.a) != -1 && x.Cmp(a.b) == -1
+	tmp := getScratch()
+	defer putScratch(tmp)
+	return a.cover(x, tmp)
+}
+
+func (a *Interval) cover(x *Rational, tmp *scratch) bool {
+	return x.cmp(a.a, tmp) != -1 && x.cmp(a.b, tmp) == -1
 }
 
 // String renders interval to string.
@@ -66,13 +72,13 @@ func (a *Interval) toBits(tmp *scratch) []bool {
 	x1, one := big.NewInt(0), big.NewInt(1)
 	tmp.c.Num.Set(x)
 	tmp.c.Denom.Set(y)
-	for tmp.c.Cmp(a.a) == -1 || tmp.c.Cmp(a.b) != -1 {
+	for tmp.c.cmp(a.a, tmp) == -1 || tmp.c.cmp(a.b, tmp) != -1 {
 		x.Lsh(x, 1)
 		y.Lsh(y, 1)
 		x1 = x1.Or(x, one)
 		tmp.d.Num.Set(x1)
 		tmp.d.Denom.Set(y)
-		if tmp.c.Cmp(a.a) == -1 && tmp.d.Cmp(a.b) == -1 {
+		if tmp.c.cmp(a.a, tmp) == -1 && tmp.d.cmp(a.b, tmp) == -1 {
 			x.Set(x1)
 		}
 		tmp.c.Num.Set(x)

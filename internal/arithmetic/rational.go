@@ -58,7 +58,7 @@ func (z *Rational) add(x, y *Rational, tmp *scratch) *Rational {
 	tmp.b.Mul(y.Num, x.Denom)
 	z.Num.Add(tmp.a, tmp.b)
 	z.Denom.Mul(x.Denom, y.Denom)
-	z.Reduce()
+	z.reduce(tmp)
 	return z
 }
 
@@ -74,23 +74,35 @@ func (z *Rational) sub(x, y *Rational, tmp *scratch) *Rational {
 	tmp.b.Mul(y.Num, x.Denom)
 	z.Num.Sub(tmp.a, tmp.b)
 	z.Denom.Mul(x.Denom, y.Denom)
-	z.Reduce()
+	z.reduce(tmp)
 	return z
 }
 
 // Mul sets z to the product x*y and returns z.
 func (z *Rational) Mul(x, y *Rational) *Rational {
+	tmp := getScratch()
+	defer putScratch(tmp)
+	return z.mul(x, y, tmp)
+}
+
+func (z *Rational) mul(x, y *Rational, tmp *scratch) *Rational {
 	z.Num.Mul(x.Num, y.Num)
 	z.Denom.Mul(x.Denom, y.Denom)
-	z.Reduce()
+	z.reduce(tmp)
 	return z
 }
 
 // Div sets z to the ratio x/y and returns z.
 func (z *Rational) Div(x, y *Rational) *Rational {
+	tmp := getScratch()
+	defer putScratch(tmp)
+	return z.div(x, y, tmp)
+}
+
+func (z *Rational) div(x, y *Rational, tmp *scratch) *Rational {
 	z.Num.Mul(x.Num, y.Denom)
 	z.Denom.Mul(x.Denom, y.Num)
-	z.Reduce()
+	z.reduce(tmp)
 	return z
 }
 
@@ -137,8 +149,8 @@ func (z *Rational) ScaleWithInterval(i *Interval) *Rational {
 }
 
 func (z *Rational) scaleWithInterval(i *Interval, tmp *scratch) *Rational {
-	z.Sub(z, i.a)
-	z.Div(z, i.length(tmp))
+	z.sub(z, i.a, tmp)
+	z.div(z, i.length(tmp), tmp)
 
 	return z
 }
