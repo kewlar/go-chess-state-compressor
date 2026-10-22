@@ -6,11 +6,12 @@ import (
 	"example.com/go-chess/internal/entropy"
 )
 
+// TryEncodeEarlyPosition tries to encode one of the 421 positions possible in first 3 plies in a single magic number. Returns the bitfield and bool true if succeeded, nil and false otherwise.
 func TryEncodeEarlyPosition(state *chess.State) (*bitfield.BitField, bool) {
 	bf := &bitfield.BitField{}
 
 	// Encode starting position.
-	if state.Fullmove == 1 && state.SideToMove == chess.White {
+	if state.Fullmove == 1 && state.SideToMove == chess.White && state.EnPassant == chess.InvalidSquare && state.Halfmove == 0 && state.Castling.String() == "KQkq" && len(startingPositionDiff(state.Board)) == 0 {
 		bf.WriteInt(0, 21) // moveNum
 		return bf, true
 	}
@@ -43,4 +44,16 @@ func TryEncodeEarlyPosition(state *chess.State) (*bitfield.BitField, bool) {
 	}
 
 	return nil, false
+}
+
+// startingPositionDiff returns the difference between the starting position and the given position.
+func startingPositionDiff(board chess.Board) map[chess.Square]chess.Piece {
+	startingPosition, _ := chess.ParseFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+	diff := map[chess.Square]chess.Piece{}
+	for i := range 64 {
+		if board[i] != startingPosition.Board[i] {
+			diff[chess.Square(i)] = board[i]
+		}
+	}
+	return diff
 }

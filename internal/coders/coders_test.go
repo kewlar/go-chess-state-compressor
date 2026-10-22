@@ -65,6 +65,10 @@ func TestCodersRoundTrip(t *testing.T) {
 			name: "Shortest bare kings endgame",
 			fen:  "8/4k3/8/8/8/8/5K2/8 b - - 0 17",
 		},
+		{
+			name: "Typical puzzle without movecount",
+			fen:  "4R3/8/8/2Pkp3/N7/4rnKB/1nb5/b1r5 w - - 0 1",
+		},
 	}
 	coders := []coders.Coder{
 		coders.NewFenCoder(),

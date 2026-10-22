@@ -42,6 +42,20 @@ func (c *ArithmeticAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.Bi
 
 	// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
 	originalColorRanks := state.Fullmove < 3 || state.Fullmove == 3 && state.SideToMove == chess.White
+	maybeOriginalColorRanks := originalColorRanks
+	if originalColorRanks {
+		for i := range 16 {
+			if state.Board[i] != chess.Empty && state.Board[i].Color() != chess.Black {
+				originalColorRanks = false
+				break
+			}
+			j := 48 + i
+			if state.Board[j] != chess.Empty && state.Board[j].Color() != chess.White {
+				originalColorRanks = false
+				break
+			}
+		}
+	}
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy := make([]bool, 64)
@@ -109,6 +123,9 @@ func (c *ArithmeticAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.Bi
 	}
 
 	// Piece colors.
+	if maybeOriginalColorRanks {
+		bf.WriteBool(originalColorRanks)
+	}
 	bf.WriteInt(uint64(color), colorCount)
 
 	// Arithmetic coding.
@@ -216,6 +233,10 @@ func (c *ArithmeticAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.
 
 		// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
 		originalColorRanks := state.Fullmove < 3 || state.Fullmove == 3 && state.SideToMove == chess.White
+		maybeOriginalColorRanks := originalColorRanks
+		if maybeOriginalColorRanks {
+			originalColorRanks = data.ReadBool()
+		}
 
 		// Piece placement: colors.
 		colorCount := pieceCount
