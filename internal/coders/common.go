@@ -59,59 +59,45 @@ func startingPositionDiff(board chess.Board) map[chess.Square]chess.Piece {
 	return diff
 }
 
+// TryDecodeEarlyPosition tries to decode the early position given moveNum and access to encoded data. Returns the chess state and bool true if succeeded.
 func TryDecodeEarlyPosition(moveNum int, data *bitfield.BitField) (*chess.State, bool) {
 	var state *chess.State
 	switch moveNum {
 	case 0:
 		state = chess.NewStartingState()
 	case 1:
-		num := int(data.ReadInt(5))
 		state = chess.NewStartingState()
-		move := chess.FirstWhiteMoves()[num]
-		state.Board[move.To] = state.Board[move.From]
-		state.Board[move.From] = chess.Empty
-		if state.Board[move.To].Type() == chess.Pawn && tools.Abs(move.From.Rank()-move.To.Rank()) == 2 {
-			state.EnPassant = chess.NewSquareFromRankAndFile((move.From.Rank()+move.To.Rank())/2, move.To.File())
-		}
-		if state.Board[move.To].Type() != chess.Pawn {
-			state.Halfmove++
-		}
-		state.SideToMove = chess.Black
+		whiteMove := int(data.ReadInt(5))
+		applyMove(state, chess.FirstWhiteMoves()[whiteMove])
 	case 2:
+		state = chess.NewStartingState()
 		num := int(data.ReadInt(9))
 		whiteMove, blackMove := num/20, num%20
-
-		state = chess.NewStartingState()
-		// Apply move by White.
-		move := chess.FirstWhiteMoves()[whiteMove]
-		state.Board[move.To] = state.Board[move.From]
-		state.Board[move.From] = chess.Empty
-		if state.Board[move.To].Type() == chess.Pawn && tools.Abs(move.From.Rank()-move.To.Rank()) == 2 {
-			state.EnPassant = chess.NewSquareFromRankAndFile((move.From.Rank()+move.To.Rank())/2, move.To.File())
-		}
-		if state.Board[move.To].Type() != chess.Pawn {
-			state.Halfmove++
-		}
-		// Apply move by Black.
-		move = chess.FirstBlackMoves()[blackMove]
-		state.Board[move.To] = state.Board[move.From]
-		state.Board[move.From] = chess.Empty
-		if state.Board[move.To].Type() == chess.Pawn && tools.Abs(move.From.Rank()-move.To.Rank()) == 2 {
-			state.EnPassant = chess.NewSquareFromRankAndFile((move.From.Rank()+move.To.Rank())/2, move.To.File())
-		} else {
-			state.EnPassant = chess.InvalidSquare
-		}
-		if state.Board[move.To].Type() != chess.Pawn {
-			state.Halfmove++
-		} else {
-			state.Halfmove = 0
-		}
-
-		state.Fullmove = 2
-		state.SideToMove = chess.White
+		applyMove(state, chess.FirstWhiteMoves()[whiteMove])
+		applyMove(state, chess.FirstBlackMoves()[blackMove])
 	default:
 		return nil, false
 	}
 
 	return state, true
+}
+
+// applyMove modifies the state by applying the given move.
+func applyMove(state *chess.State, move chess.Move) {
+	state.Board[move.To] = state.Board[move.From]
+	state.Board[move.From] = chess.Empty
+	if state.Board[move.To].Type() == chess.Pawn && tools.Abs(move.From.Rank()-move.To.Rank()) == 2 {
+		state.EnPassant = chess.NewSquareFromRankAndFile((move.From.Rank()+move.To.Rank())/2, move.To.File())
+	} else {
+		state.EnPassant = chess.InvalidSquare
+	}
+	if state.Board[move.To].Type() != chess.Pawn {
+		state.Halfmove++
+	} else {
+		state.Halfmove = 0
+	}
+	state.SideToMove = state.SideToMove.Other()
+	if state.SideToMove == chess.White {
+		state.Fullmove++
+	}
 }
