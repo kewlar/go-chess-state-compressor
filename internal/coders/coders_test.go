@@ -85,6 +85,14 @@ func TestCodersRoundTrip(t *testing.T) {
 			name: "e5 (en passant)",
 			fen:  "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",
 		},
+		{
+			name: "Last ply where all pieces on home ranks are of their original colors",
+			fen:  "rnbqk1nr/pppp1ppp/8/4p2Q/4P3/b7/PPPP1PPP/RNB1KBNR w KQkq - 2 3",
+		},
+		{
+			name: "First ply where a piece on home ranks can be of an opposing color",
+			fen:  "rnbqk1nr/pppp1Qpp/8/4p3/4P3/b7/PPPP1PPP/RNB1KBNR b KQkq - 0 3",
+		},
 	}
 	coders := []coders.Coder{
 		coders.NewFenCoder(),
