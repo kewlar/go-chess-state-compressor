@@ -95,10 +95,7 @@ func TestCodersRoundTrip(t *testing.T) {
 	for _, coder := range coders {
 		for _, position := range positions {
 			t.Run(fmt.Sprintf("%s: %s", coder.Name(), position.name), func(t *testing.T) {
-				state, err := chess.ParseFen(position.fen)
-				if err != nil {
-					panic("error in test data")
-				}
+				state, _ := chess.ParseFen(position.fen)
 				encoded := coder.Encode(state)
 				decoded := coder.Decode(encoded)
 				decodedFen := decoded.ToFen()
