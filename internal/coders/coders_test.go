@@ -69,6 +69,14 @@ func TestCodersRoundTrip(t *testing.T) {
 			name: "Typical puzzle without movecount",
 			fen:  "4R3/8/8/2Pkp3/N7/4rnKB/1nb5/b1r5 w - - 0 1",
 		},
+		{
+			name: "Typical puzzle without movecount (1)",
+			fen:  "4R3/8/8/2Pkp3/N5K1/4rn1B/1nb5/b1r5 b - - 1 1",
+		},
+		{
+			name: "Typical puzzle without movecount (2)",
+			fen:  "4R3/8/8/2Pkp3/N5K1/4r2B/1nb4n/b1r5 w - - 2 2",
+		},
 	}
 	coders := []coders.Coder{
 		coders.NewFenCoder(),

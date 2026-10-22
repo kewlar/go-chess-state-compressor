@@ -11,35 +11,39 @@ import (
 func TryEncodeEarlyPosition(state *chess.State) (*bitfield.BitField, bool) {
 	bf := &bitfield.BitField{}
 
+	isFullCastling := state.Castling.String() == "KQkq"
+	diff := startingPositionDiff(state.Board)
+
 	// Encode starting position.
-	if state.Fullmove == 1 && state.SideToMove == chess.White && state.EnPassant == chess.InvalidSquare && state.Halfmove == 0 && state.Castling.String() == "KQkq" && len(startingPositionDiff(state.Board)) == 0 {
+	if state.Fullmove == 1 && state.SideToMove == chess.White && state.EnPassant == chess.InvalidSquare && state.Halfmove == 0 && isFullCastling && len(diff) == 0 {
 		bf.WriteInt(0, 21) // moveNum
 		return bf, true
 	}
 
 	// Encode the board after first move by White
-	if state.Fullmove == 1 && state.SideToMove == chess.Black {
-		bf.WriteInt(1, 21) // moveNum
+	if state.Fullmove == 1 && state.SideToMove == chess.Black && isFullCastling && len(diff) == 2 {
 		whiteMove := entropy.FindMatchingMoveIndex(state.Board, chess.FirstWhiteMoves())
 		if whiteMove == -1 { // Not found.
-			panic("move not found")
+			return nil, false
 		}
+
+		bf.WriteInt(1, 21) // moveNum
 		bf.WriteInt(uint64(whiteMove), 5)
 		return bf, true
 	}
 
 	// Encode the board after first move by Black
-	if state.Fullmove == 2 && state.SideToMove == chess.White {
-		bf.WriteInt(2, 21) // moveNum
+	if state.Fullmove == 2 && state.SideToMove == chess.White && isFullCastling && len(diff) == 4 {
 		whiteMove := entropy.FindMatchingMoveIndex(state.Board, chess.FirstWhiteMoves())
 		if whiteMove == -1 { // Not found.
-			panic("move not found")
+			return nil, false
 		}
 		blackMove := entropy.FindMatchingMoveIndex(state.Board, chess.FirstBlackMoves())
 		if blackMove == -1 { // Not found.
-			panic("move not found")
+			return nil, false
 		}
 
+		bf.WriteInt(2, 21) // moveNum
 		bf.WriteInt(uint64(whiteMove*20+blackMove), 9)
 		return bf, true
 	}
