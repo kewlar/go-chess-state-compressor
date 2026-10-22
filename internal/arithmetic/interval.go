@@ -34,7 +34,7 @@ func (a *Interval) Mul(b *Interval) *Interval {
 }
 
 func (a *Interval) mul(b *Interval, tmp *scratch) *Interval {
-	l := a.Length()
+	l := a.length(tmp)
 	tmp.a0.Set(a.a)
 	tmp.ba.Set(b.a)
 	tmp.bb.Set(b.b)

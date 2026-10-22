@@ -131,8 +131,14 @@ func (x *Rational) cmp(y *Rational, tmp *scratch) int {
 
 // ScaleWithInterval performs z = (z - i.a) / i.Length(). z, i.a, and i.b are all in range [0, 1).
 func (z *Rational) ScaleWithInterval(i *Interval) *Rational {
+	tmp := getScratch()
+	defer putScratch(tmp)
+	return z.scaleWithInterval(i, tmp)
+}
+
+func (z *Rational) scaleWithInterval(i *Interval, tmp *scratch) *Rational {
 	z.Sub(z, i.a)
-	z.Div(z, i.Length())
+	z.Div(z, i.length(tmp))
 
 	return z
 }
