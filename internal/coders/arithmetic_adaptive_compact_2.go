@@ -222,12 +222,7 @@ func (c *ArithmeticAdaptiveCompact2Coder) Decode(data *bitfield.BitField) *chess
 	}
 	occupancy := data.ReadBoolSlice(64 - len(skippedSquares))
 	occupancy = tools.WithSquares(occupancy, skippedSquares)
-	pieceCount := 0
-	for _, occupied := range occupancy {
-		if occupied {
-			pieceCount++
-		}
-	}
+	pieceCount := tools.CountTrue(occupancy)
 
 	// Restore full-board piece color map. True = White, False = Black or empty.
 	for cell, isOccupied := range occupancy {

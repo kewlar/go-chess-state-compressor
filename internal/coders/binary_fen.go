@@ -3,6 +3,7 @@ package coders
 import (
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
+	"example.com/go-chess/internal/tools"
 )
 
 type BinaryFenCoder struct {
@@ -76,12 +77,8 @@ func (c *BinaryFenCoder) Decode(data *bitfield.BitField) *chess.State {
 
 	// Piece placement: occupancy.
 	occupancy := data.ReadBoolSlice(64)
-	pieceCount := 0
-	for _, occupied := range occupancy {
-		if occupied {
-			pieceCount++
-		}
-	}
+
+	pieceCount := tools.CountTrue(occupancy)
 
 	// Piece placement: colors.
 	colors := data.ReadBoolSlice(pieceCount)

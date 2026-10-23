@@ -69,3 +69,14 @@ func WithSquares(s []bool, squares map[int]bool) []bool {
 	}
 	return out
 }
+
+// CountTrue returns a number of members in bool slice s that are true.
+func CountTrue(s []bool) int {
+	count := 0
+	for _, x := range s {
+		if x {
+			count++
+		}
+	}
+	return count
+}

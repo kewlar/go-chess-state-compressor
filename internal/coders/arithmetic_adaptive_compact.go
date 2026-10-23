@@ -7,6 +7,7 @@ import (
 	"example.com/go-chess/internal/arithmetic"
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
+	"example.com/go-chess/internal/tools"
 )
 
 type ArithmeticAdaptiveCompactCoder struct {
@@ -164,12 +165,7 @@ func (c *ArithmeticAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.
 
 	// Piece placement: occupancy.
 	occupancy := data.ReadBoolSlice(64)
-	pieceCount := 0
-	for _, occupied := range occupancy {
-		if occupied {
-			pieceCount++
-		}
-	}
+	pieceCount := tools.CountTrue(occupancy)
 
 	state.SideToMove = chess.White
 	if pieceCount > 32 {
