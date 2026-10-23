@@ -35,36 +35,36 @@ func (c *HuffmanCoder) Name() string {
 }
 
 func (c *HuffmanCoder) Encode(state *chess.State) *bitfield.BitField {
-	bf := &bitfield.BitField{}
+	bits := &bitfield.BitField{}
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy, color, pieces := separateBoardInformation(state.Board)
 
 	// Piece placement.
-	bf.WriteInt(occupancy, 64)
-	bf.WriteInt(uint64(color), len(pieces))
+	bits.WriteInt(occupancy, 64)
+	bits.WriteInt(uint64(color), len(pieces))
 	for _, piece := range pieces {
-		bf.WriteBoolSlice(c.huffmanDict[rune(piece.Type())].Bits)
+		bits.WriteBoolSlice(c.huffmanDict[rune(piece.Type())].Bits)
 	}
 
-	bf.WriteBool(bool(state.SideToMove))
-	bf.WriteBoolSlice(state.Castling.BoolSlice())
-	bf.WriteInt(uint64(state.EnPassant), 7)
-	bf.WriteInt(uint64(state.Halfmove), 8)
-	bf.WriteInt(uint64(state.Fullmove), 14)
+	bits.WriteBool(bool(state.SideToMove))
+	bits.WriteBoolSlice(state.Castling.BoolSlice())
+	bits.WriteInt(uint64(state.EnPassant), 7)
+	bits.WriteInt(uint64(state.Halfmove), 8)
+	bits.WriteInt(uint64(state.Fullmove), 14)
 
-	return bf
+	return bits
 }
 
-func (c *HuffmanCoder) Decode(data *bitfield.BitField) *chess.State {
+func (c *HuffmanCoder) Decode(bits *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Piece placement: occupancy.
-	occupancy := data.ReadBoolSlice(64)
+	occupancy := bits.ReadBoolSlice(64)
 	pieceCount := tools.CountTrue(occupancy)
 
 	// Piece placement: colors.
-	colors := data.ReadBoolSlice(pieceCount)
+	colors := bits.ReadBoolSlice(pieceCount)
 
 	// Piece placement: pieces.
 	pieces := make([]rune, 0, pieceCount)
@@ -72,17 +72,17 @@ func (c *HuffmanCoder) Decode(data *bitfield.BitField) *chess.State {
 		// Read Huffman code.
 		node := c.huffmanTree
 		for !node.IsLeaf() {
-			bit := data.ReadBool()
+			bit := bits.ReadBool()
 			node = node.Children[bit]
 		}
 		pieces = append(pieces, node.Value)
 	}
 
-	state.SideToMove = chess.Color(data.ReadBool())
-	state.Castling = chess.NewCastling(data.ReadBoolSlice(4))
-	state.EnPassant = chess.Square(data.ReadInt(7))
-	state.Halfmove = int(data.ReadInt(8))
-	state.Fullmove = int(data.ReadInt(14))
+	state.SideToMove = chess.Color(bits.ReadBool())
+	state.Castling = chess.NewCastling(bits.ReadBoolSlice(4))
+	state.EnPassant = chess.Square(bits.ReadInt(7))
+	state.Halfmove = int(bits.ReadInt(8))
+	state.Fullmove = int(bits.ReadInt(14))
 
 	// Piece placement.
 	placePieces(&state.Board, occupancy, pieces, colors)

@@ -34,11 +34,11 @@ func (c *ArithmeticAdaptiveCompactCoder) Name() string {
 }
 
 func (c *ArithmeticAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.BitField {
-	if bf, ok := TryEncodeEarlyPosition(state); ok {
-		return bf
+	if bits, ok := TryEncodeEarlyPosition(state); ok {
+		return bits
 	}
 
-	bf := &bitfield.BitField{}
+	bits := &bitfield.BitField{}
 
 	// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
 	maybeOriginalColorRanks := maybeOriginalColorRanks(state)
@@ -74,20 +74,20 @@ func (c *ArithmeticAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.Bi
 
 	// Halfmove clock & fullmove number.
 	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
-	bf.WriteInt(uint64(moveNum), 21)
+	bits.WriteInt(uint64(moveNum), 21)
 
 	// Castling availability.
-	bf.WriteBool(state.Castling.IsAvailable())
+	bits.WriteBool(state.Castling.IsAvailable())
 	if state.Castling.IsAvailable() {
-		bf.WriteBoolSlice(state.Castling.BoolSlice())
+		bits.WriteBoolSlice(state.Castling.BoolSlice())
 	}
 
 	// En passant square.
 	if state.EnPassant.IsValid() {
-		bf.WriteBool(true)
-		bf.WriteInt(uint64(state.EnPassant), 3) // Only the lowest 3 bits -- the file -- are necessary.
+		bits.WriteBool(true)
+		bits.WriteInt(uint64(state.EnPassant), 3) // Only the lowest 3 bits -- the file -- are necessary.
 	} else {
-		bf.WriteBool(false)
+		bits.WriteBool(false)
 	}
 
 	// Encode side to move in occupancy data, if possible.
@@ -102,35 +102,35 @@ func (c *ArithmeticAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.Bi
 	}
 
 	// Piece placement.
-	bf.WriteInt(occupancyOut, len(occupancy))
+	bits.WriteInt(occupancyOut, len(occupancy))
 
 	// Side to move.
 	if len(pieces) == 32 {
-		bf.WriteBool(bool(state.SideToMove))
+		bits.WriteBool(bool(state.SideToMove))
 	}
 
 	// Piece colors.
 	if maybeOriginalColorRanks {
-		bf.WriteBool(originalColorRanks)
+		bits.WriteBool(originalColorRanks)
 	}
-	bf.WriteInt(uint64(color), colorCount)
+	bits.WriteInt(uint64(color), colorCount)
 
 	// Arithmetic coding.
 	code := arithmetic.EncodeAdaptive(pieces, fullOccupancy, c.frequencies, bitfield.IntToBoolSlice(uint64(fullColor), len(pieces)), state)
 	if len(code) > maxBitsForArithmeticCode {
 		log.Fatalf("encoded data too long (%d bits)", len(code))
 	}
-	bf.WriteInt(uint64(len(code)), bitsForArithmeticCodeLength)
-	bf.WriteBoolSlice(code)
+	bits.WriteInt(uint64(len(code)), bitsForArithmeticCodeLength)
+	bits.WriteBoolSlice(code)
 
-	return bf
+	return bits
 }
 
-func (c *ArithmeticAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.State {
+func (c *ArithmeticAdaptiveCompactCoder) Decode(bits *bitfield.BitField) *chess.State {
 	// Halfmove clock & fullMove number.
-	moveNum := int(data.ReadInt(21))
+	moveNum := int(bits.ReadInt(21))
 
-	if state, ok := TryDecodeEarlyPosition(moveNum, data); ok {
+	if state, ok := TryDecodeEarlyPosition(moveNum, bits); ok {
 		return state
 	}
 
@@ -138,19 +138,19 @@ func (c *ArithmeticAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.
 	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 
 	// Castling availability.
-	hasCastling := data.ReadBool()
+	hasCastling := bits.ReadBool()
 	if hasCastling {
-		state.Castling = chess.NewCastling(data.ReadBoolSlice(4))
+		state.Castling = chess.NewCastling(bits.ReadBoolSlice(4))
 	}
 	// En passant square.
-	hasEnPassant := data.ReadBool()
+	hasEnPassant := bits.ReadBool()
 	enPassantFile := -1
 	if hasEnPassant {
-		enPassantFile = int(data.ReadInt(3))
+		enPassantFile = int(bits.ReadInt(3))
 	}
 
 	// Piece placement: occupancy.
-	occupancy := data.ReadBoolSlice(64)
+	occupancy := bits.ReadBoolSlice(64)
 	pieceCount := tools.CountTrue(occupancy)
 
 	state.SideToMove = chess.White
@@ -164,14 +164,14 @@ func (c *ArithmeticAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.
 
 	// Side to move.
 	if pieceCount == 32 {
-		state.SideToMove = chess.Color(data.ReadBool())
+		state.SideToMove = chess.Color(bits.ReadBool())
 	}
 
 	// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
 	maybeOriginalColorRanks := maybeOriginalColorRanks(state)
 	originalColorRanks := false
 	if maybeOriginalColorRanks {
-		originalColorRanks = data.ReadBool()
+		originalColorRanks = bits.ReadBool()
 	}
 
 	// Piece placement: colors.
@@ -194,7 +194,7 @@ func (c *ArithmeticAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.
 			}
 		}
 	}
-	colors := data.ReadBoolSlice(colorCount)
+	colors := bits.ReadBoolSlice(colorCount)
 	if originalColorRanks {
 		blacks := []bool{}
 		for range numBlack {
@@ -218,8 +218,8 @@ func (c *ArithmeticAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.
 	}
 
 	// Piece placement: pieces.
-	l := int(data.ReadInt(bitsForArithmeticCodeLength))
-	code := data.ReadBoolSlice(l)
+	l := int(bits.ReadInt(bitsForArithmeticCodeLength))
+	code := bits.ReadBoolSlice(l)
 	pieces := arithmetic.DecodeAdaptive(code, pieceCount, occupancy, c.frequencies, colors, state)
 
 	// Piece placement.

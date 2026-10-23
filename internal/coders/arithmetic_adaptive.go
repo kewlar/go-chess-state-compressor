@@ -33,50 +33,50 @@ func (c *ArithmeticAdaptiveCoder) Name() string {
 }
 
 func (c *ArithmeticAdaptiveCoder) Encode(state *chess.State) *bitfield.BitField {
-	bf := &bitfield.BitField{}
+	bits := &bitfield.BitField{}
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy, color, pieces := separateBoardInformation(state.Board)
 
-	bf.WriteInt(occupancy, 64)
-	bf.WriteInt(uint64(color), len(pieces))
+	bits.WriteInt(occupancy, 64)
+	bits.WriteInt(uint64(color), len(pieces))
 
-	bf.WriteBool(bool(state.SideToMove))
-	bf.WriteBoolSlice(state.Castling.BoolSlice())
-	bf.WriteInt(uint64(state.EnPassant), 7)
-	bf.WriteInt(uint64(state.Halfmove), 8)
-	bf.WriteInt(uint64(state.Fullmove), 14)
+	bits.WriteBool(bool(state.SideToMove))
+	bits.WriteBoolSlice(state.Castling.BoolSlice())
+	bits.WriteInt(uint64(state.EnPassant), 7)
+	bits.WriteInt(uint64(state.Halfmove), 8)
+	bits.WriteInt(uint64(state.Fullmove), 14)
 
 	// Arithmetic coding.
 	code := arithmetic.EncodeAdaptive(piecesToRunes(pieces), bitfield.IntToBoolSlice(occupancy, 64), c.frequencies, bitfield.IntToBoolSlice(uint64(color), len(pieces)), state)
 	if len(code) > maxBitsForArithmeticCode {
 		log.Fatalf("encoded data too long (%d bits)", len(code))
 	}
-	bf.WriteInt(uint64(len(code)), bitsForArithmeticCodeLength)
-	bf.WriteBoolSlice(code)
+	bits.WriteInt(uint64(len(code)), bitsForArithmeticCodeLength)
+	bits.WriteBoolSlice(code)
 
-	return bf
+	return bits
 }
 
-func (c *ArithmeticAdaptiveCoder) Decode(data *bitfield.BitField) *chess.State {
+func (c *ArithmeticAdaptiveCoder) Decode(bits *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Piece placement: occupancy.
-	occupancy := data.ReadBoolSlice(64)
+	occupancy := bits.ReadBoolSlice(64)
 	pieceCount := tools.CountTrue(occupancy)
 
 	// Piece placement: colors.
-	colors := data.ReadBoolSlice(pieceCount)
+	colors := bits.ReadBoolSlice(pieceCount)
 
-	state.SideToMove = chess.Color(data.ReadBool())
-	state.Castling = chess.NewCastling(data.ReadBoolSlice(4))
-	state.EnPassant = chess.Square(data.ReadInt(7))
-	state.Halfmove = int(data.ReadInt(8))
-	state.Fullmove = int(data.ReadInt(14))
+	state.SideToMove = chess.Color(bits.ReadBool())
+	state.Castling = chess.NewCastling(bits.ReadBoolSlice(4))
+	state.EnPassant = chess.Square(bits.ReadInt(7))
+	state.Halfmove = int(bits.ReadInt(8))
+	state.Fullmove = int(bits.ReadInt(14))
 
 	// Piece placement: pieces.
-	l := int(data.ReadInt(bitsForArithmeticCodeLength))
-	code := data.ReadBoolSlice(l)
+	l := int(bits.ReadInt(bitsForArithmeticCodeLength))
+	code := bits.ReadBoolSlice(l)
 	pieces := arithmetic.DecodeAdaptive(code, pieceCount, occupancy, c.frequencies, colors, state)
 
 	// Piece placement.

@@ -23,9 +23,9 @@ func (c *FenCoder) Encode(state *chess.State) *bitfield.BitField {
 	}
 }
 
-func (c *FenCoder) Decode(data *bitfield.BitField) *chess.State {
-	l := data.Length/8 - 1
-	state, err := chess.ParseFen(string(data.Data[:l]))
+func (c *FenCoder) Decode(bits *bitfield.BitField) *chess.State {
+	l := bits.Length/8 - 1
+	state, err := chess.ParseFen(string(bits.Data[:l]))
 	if err != nil {
 		panic(err)
 	}

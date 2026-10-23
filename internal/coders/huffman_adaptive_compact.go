@@ -35,11 +35,11 @@ func (c *HuffmanAdaptiveCompactCoder) Name() string {
 }
 
 func (c *HuffmanAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.BitField {
-	if bf, ok := TryEncodeEarlyPosition(state); ok {
-		return bf
+	if bits, ok := TryEncodeEarlyPosition(state); ok {
+		return bits
 	}
 
-	bf := &bitfield.BitField{}
+	bits := &bitfield.BitField{}
 
 	// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
 	maybeOriginalColorRanks := maybeOriginalColorRanks(state)
@@ -75,20 +75,20 @@ func (c *HuffmanAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.BitFi
 
 	// Halfmove clock & fullmove number.
 	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
-	bf.WriteInt(uint64(moveNum), 21)
+	bits.WriteInt(uint64(moveNum), 21)
 
 	// Castling availability.
-	bf.WriteBool(state.Castling.IsAvailable())
+	bits.WriteBool(state.Castling.IsAvailable())
 	if state.Castling.IsAvailable() {
-		bf.WriteBoolSlice(state.Castling.BoolSlice())
+		bits.WriteBoolSlice(state.Castling.BoolSlice())
 	}
 
 	// En passant square.
 	if state.EnPassant.IsValid() {
-		bf.WriteBool(true)
-		bf.WriteInt(uint64(state.EnPassant), 3) // Only the lowest 3 bits -- the file -- are necessary.
+		bits.WriteBool(true)
+		bits.WriteInt(uint64(state.EnPassant), 3) // Only the lowest 3 bits -- the file -- are necessary.
 	} else {
-		bf.WriteBool(false)
+		bits.WriteBool(false)
 	}
 
 	// Encode side to move in occupancy data, if possible.
@@ -103,18 +103,18 @@ func (c *HuffmanAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.BitFi
 	}
 
 	// Piece placement.
-	bf.WriteInt(occupancyOut, len(occupancy))
+	bits.WriteInt(occupancyOut, len(occupancy))
 
 	// Side to move.
 	if len(pieces) == 32 {
-		bf.WriteBool(bool(state.SideToMove))
+		bits.WriteBool(bool(state.SideToMove))
 	}
 
 	// Piece colors.
 	if maybeOriginalColorRanks {
-		bf.WriteBool(originalColorRanks)
+		bits.WriteBool(originalColorRanks)
 	}
-	bf.WriteInt(uint64(color), colorCount)
+	bits.WriteInt(uint64(color), colorCount)
 
 	// Huffman coding.
 	n := len(pieces)
@@ -130,21 +130,21 @@ func (c *HuffmanAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.BitFi
 			}
 			tree := huffman.BuildHuffmanTree(freqs2)
 			dict := tree.BuildDictionary()
-			bf.WriteBoolSlice(dict[r].Bits)
+			bits.WriteBoolSlice(dict[r].Bits)
 			idx++
 
 			freqs = entropy.UpdateFrequencies(r, n-idx, freqs)
 		}
 	}
 
-	return bf
+	return bits
 }
 
-func (c *HuffmanAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.State {
+func (c *HuffmanAdaptiveCompactCoder) Decode(bits *bitfield.BitField) *chess.State {
 	// Halfmove clock & fullMove number.
-	moveNum := int(data.ReadInt(21))
+	moveNum := int(bits.ReadInt(21))
 
-	if state, ok := TryDecodeEarlyPosition(moveNum, data); ok {
+	if state, ok := TryDecodeEarlyPosition(moveNum, bits); ok {
 		return state
 	}
 
@@ -152,19 +152,19 @@ func (c *HuffmanAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.Sta
 	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 
 	// Castling availability.
-	hasCastling := data.ReadBool()
+	hasCastling := bits.ReadBool()
 	if hasCastling {
-		state.Castling = chess.NewCastling(data.ReadBoolSlice(4))
+		state.Castling = chess.NewCastling(bits.ReadBoolSlice(4))
 	}
 	// En passant square.
-	hasEnPassant := data.ReadBool()
+	hasEnPassant := bits.ReadBool()
 	enPassantFile := -1
 	if hasEnPassant {
-		enPassantFile = int(data.ReadInt(3))
+		enPassantFile = int(bits.ReadInt(3))
 	}
 
 	// Piece placement: occupancy.
-	occupancy := data.ReadBoolSlice(64)
+	occupancy := bits.ReadBoolSlice(64)
 	pieceCount := tools.CountTrue(occupancy)
 
 	state.SideToMove = chess.White
@@ -178,14 +178,14 @@ func (c *HuffmanAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.Sta
 
 	// Side to move.
 	if pieceCount == 32 {
-		state.SideToMove = chess.Color(data.ReadBool())
+		state.SideToMove = chess.Color(bits.ReadBool())
 	}
 
 	// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
 	maybeOriginalColorRanks := maybeOriginalColorRanks(state)
 	originalColorRanks := false
 	if maybeOriginalColorRanks {
-		originalColorRanks = data.ReadBool()
+		originalColorRanks = bits.ReadBool()
 	}
 
 	// Piece placement: colors.
@@ -208,7 +208,7 @@ func (c *HuffmanAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.Sta
 			}
 		}
 	}
-	colors := data.ReadBoolSlice(colorCount)
+	colors := bits.ReadBoolSlice(colorCount)
 	if originalColorRanks {
 		blacks := []bool{}
 		for range numBlack {
@@ -242,7 +242,7 @@ func (c *HuffmanAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.Sta
 
 			node := tree
 			for !node.IsLeaf() {
-				bit := data.ReadBool()
+				bit := bits.ReadBool()
 				node = node.Children[bit]
 			}
 			piece := node.Value

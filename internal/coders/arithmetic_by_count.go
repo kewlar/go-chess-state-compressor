@@ -281,52 +281,52 @@ func (c *ArithmeticByCountCoder) Name() string {
 }
 
 func (c *ArithmeticByCountCoder) Encode(state *chess.State) *bitfield.BitField {
-	bf := &bitfield.BitField{}
+	bits := &bitfield.BitField{}
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy, color, pieces := separateBoardInformation(state.Board)
 
 	// Piece placement.
-	bf.WriteInt(occupancy, 64)
-	bf.WriteInt(uint64(color), len(pieces))
+	bits.WriteInt(occupancy, 64)
+	bits.WriteInt(uint64(color), len(pieces))
 
 	// Arithmetic coding.
-	bits := arithmetic.Encode(piecesToRunes(pieces), c.intervals[len(pieces)])
-	if len(bits) > (1<<bitsForArithmeticCodeLength)-1 {
-		log.Fatalf("encoded data too long (%d bits)", len(bits))
+	code := arithmetic.Encode(piecesToRunes(pieces), c.intervals[len(pieces)])
+	if len(code) > maxBitsForArithmeticCode {
+		log.Fatalf("encoded data too long (%d bits)", len(code))
 	}
-	bf.WriteInt(uint64(len(bits)), bitsForArithmeticCodeLength)
-	bf.WriteBoolSlice(bits)
+	bits.WriteInt(uint64(len(code)), bitsForArithmeticCodeLength)
+	bits.WriteBoolSlice(code)
 
-	bf.WriteBool(bool(state.SideToMove))
-	bf.WriteBoolSlice(state.Castling.BoolSlice())
-	bf.WriteInt(uint64(state.EnPassant), 7)
-	bf.WriteInt(uint64(state.Halfmove), 8)
-	bf.WriteInt(uint64(state.Fullmove), 14)
+	bits.WriteBool(bool(state.SideToMove))
+	bits.WriteBoolSlice(state.Castling.BoolSlice())
+	bits.WriteInt(uint64(state.EnPassant), 7)
+	bits.WriteInt(uint64(state.Halfmove), 8)
+	bits.WriteInt(uint64(state.Fullmove), 14)
 
-	return bf
+	return bits
 }
 
-func (c *ArithmeticByCountCoder) Decode(data *bitfield.BitField) *chess.State {
+func (c *ArithmeticByCountCoder) Decode(bits *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Piece placement: occupancy.
-	occupancy := data.ReadBoolSlice(64)
+	occupancy := bits.ReadBoolSlice(64)
 	pieceCount := tools.CountTrue(occupancy)
 
 	// Piece placement: colors.
-	colors := data.ReadBoolSlice(pieceCount)
+	colors := bits.ReadBoolSlice(pieceCount)
 
 	// Piece placement: pieces.
-	l := int(data.ReadInt(bitsForArithmeticCodeLength))
-	bits := data.ReadBoolSlice(l)
-	pieces := arithmetic.Decode(bits, pieceCount, c.intervals[pieceCount])
+	l := int(bits.ReadInt(bitsForArithmeticCodeLength))
+	code := bits.ReadBoolSlice(l)
+	pieces := arithmetic.Decode(code, pieceCount, c.intervals[pieceCount])
 
-	state.SideToMove = chess.Color(data.ReadBool())
-	state.Castling = chess.NewCastling(data.ReadBoolSlice(4))
-	state.EnPassant = chess.Square(data.ReadInt(7))
-	state.Halfmove = int(data.ReadInt(8))
-	state.Fullmove = int(data.ReadInt(14))
+	state.SideToMove = chess.Color(bits.ReadBool())
+	state.Castling = chess.NewCastling(bits.ReadBoolSlice(4))
+	state.EnPassant = chess.Square(bits.ReadInt(7))
+	state.Halfmove = int(bits.ReadInt(8))
+	state.Fullmove = int(bits.ReadInt(14))
 
 	// Piece placement.
 	placePieces(&state.Board, occupancy, pieces, colors)

@@ -68,17 +68,17 @@ func (c *BinaryFenCompactCoder) Encode(state *chess.State) *bitfield.BitField {
 		idx++
 	}
 
-	bf := &bitfield.BitField{}
+	bits := &bitfield.BitField{}
 
 	// Piece placement.
-	bf.WriteInt(occupancy, 64)
-	bf.WriteInt(uint64(color), len(pieces))
+	bits.WriteInt(occupancy, 64)
+	bits.WriteInt(uint64(color), len(pieces))
 	for _, piece := range pieces {
-		bf.WriteInt(uint64(c.pieceCodes[piece]), 3)
+		bits.WriteInt(uint64(c.pieceCodes[piece]), 3)
 	}
 
 	// Side to move.
-	bf.WriteBool(bool(state.SideToMove))
+	bits.WriteBool(bool(state.SideToMove))
 
 	// Castling availability.
 	// Encoded via special rook code.
@@ -88,33 +88,33 @@ func (c *BinaryFenCompactCoder) Encode(state *chess.State) *bitfield.BitField {
 
 	// Halfmove clock & fullmove number.
 	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
-	bf.WriteInt(uint64(moveNum), 21)
+	bits.WriteInt(uint64(moveNum), 21)
 
-	return bf
+	return bits
 }
 
-func (c *BinaryFenCompactCoder) Decode(data *bitfield.BitField) *chess.State {
+func (c *BinaryFenCompactCoder) Decode(bits *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Piece placement: occupancy.
-	occupancy := data.ReadBoolSlice(64)
+	occupancy := bits.ReadBoolSlice(64)
 	pieceCount := tools.CountTrue(occupancy)
 
 	// Piece placement: colors.
-	colors := data.ReadBoolSlice(pieceCount)
+	colors := bits.ReadBoolSlice(pieceCount)
 
 	// Piece placement: pieces.
 	pieces := make([]rune, 0, pieceCount)
 	for range pieceCount {
-		piece := byte(data.ReadInt(3))
+		piece := byte(bits.ReadInt(3))
 		pieces = append(pieces, c.codePieces[piece])
 	}
 
 	// Side to move.
-	state.SideToMove = chess.Color(data.ReadBool())
+	state.SideToMove = chess.Color(bits.ReadBool())
 
 	// Halfmove clock & fullMove number.
-	moveNum := int(data.ReadInt(21))
+	moveNum := int(bits.ReadInt(21))
 	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 
 	// En passant and castling.

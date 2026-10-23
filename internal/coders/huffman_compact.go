@@ -46,37 +46,37 @@ func (c *HuffmanCompactCoder) Encode(state *chess.State) *bitfield.BitField {
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy, color, pieces := separateBoardInformation(board)
 
-	bf := &bitfield.BitField{}
+	bits := &bitfield.BitField{}
 
 	// Piece placement.
-	bf.WriteInt(occupancy, 64)
-	bf.WriteInt(uint64(color), len(pieces))
+	bits.WriteInt(occupancy, 64)
+	bits.WriteInt(uint64(color), len(pieces))
 	for _, piece := range pieces {
-		bf.WriteBoolSlice(c.huffmanDict[rune(piece.Type())].Bits)
+		bits.WriteBoolSlice(c.huffmanDict[rune(piece.Type())].Bits)
 	}
 
 	// Side to move.
-	bf.WriteBool(bool(state.SideToMove))
+	bits.WriteBool(bool(state.SideToMove))
 
 	// Castling availability.
-	bf.WriteBoolSlice(state.Castling.BoolSlice())
+	bits.WriteBoolSlice(state.Castling.BoolSlice())
 
 	// Halfmove clock & fullmove number.
 	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
-	bf.WriteInt(uint64(moveNum), 21)
+	bits.WriteInt(uint64(moveNum), 21)
 
-	return bf
+	return bits
 }
 
-func (c *HuffmanCompactCoder) Decode(data *bitfield.BitField) *chess.State {
+func (c *HuffmanCompactCoder) Decode(bits *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Piece placement: occupancy.
-	occupancy := data.ReadBoolSlice(64)
+	occupancy := bits.ReadBoolSlice(64)
 	pieceCount := tools.CountTrue(occupancy)
 
 	// Piece placement: colors.
-	colors := data.ReadBoolSlice(pieceCount)
+	colors := bits.ReadBoolSlice(pieceCount)
 
 	// Piece placement: pieces.
 	pieces := make([]rune, 0, pieceCount)
@@ -84,20 +84,20 @@ func (c *HuffmanCompactCoder) Decode(data *bitfield.BitField) *chess.State {
 		// Read Huffman code.
 		node := c.huffmanTree
 		for !node.IsLeaf() {
-			bit := data.ReadBool()
+			bit := bits.ReadBool()
 			node = node.Children[bit]
 		}
 		pieces = append(pieces, node.Value)
 	}
 
 	// Side to move.
-	state.SideToMove = chess.Color(data.ReadBool())
+	state.SideToMove = chess.Color(bits.ReadBool())
 
 	// Castling availability.
-	state.Castling = chess.NewCastling(data.ReadBoolSlice(4))
+	state.Castling = chess.NewCastling(bits.ReadBoolSlice(4))
 
 	// Halfmove clock & fullMove number.
-	moveNum := int(data.ReadInt(21))
+	moveNum := int(bits.ReadInt(21))
 	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 
 	// Piece placement.
