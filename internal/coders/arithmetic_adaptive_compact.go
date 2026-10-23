@@ -116,13 +116,12 @@ func (c *ArithmeticAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.Bi
 	bf.WriteInt(uint64(color), colorCount)
 
 	// Arithmetic coding.
-	bits := arithmetic.EncodeAdaptive(pieces, fullOccupancy, c.frequencies, bitfield.IntToBoolSlice(uint64(fullColor), len(pieces)), state)
-
-	if len(bits) > (1<<bitsForArithmeticCodeLength)-1 {
-		log.Fatalf("encoded data too long (%d bits)", len(bits))
+	code := arithmetic.EncodeAdaptive(pieces, fullOccupancy, c.frequencies, bitfield.IntToBoolSlice(uint64(fullColor), len(pieces)), state)
+	if len(code) > maxBitsForArithmeticCode {
+		log.Fatalf("encoded data too long (%d bits)", len(code))
 	}
-	bf.WriteInt(uint64(len(bits)), bitsForArithmeticCodeLength)
-	bf.WriteBoolSlice(bits)
+	bf.WriteInt(uint64(len(code)), bitsForArithmeticCodeLength)
+	bf.WriteBoolSlice(code)
 
 	return bf
 }
@@ -220,8 +219,8 @@ func (c *ArithmeticAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.
 
 	// Piece placement: pieces.
 	l := int(data.ReadInt(bitsForArithmeticCodeLength))
-	bits := data.ReadBoolSlice(l)
-	pieces := arithmetic.DecodeAdaptive(bits, pieceCount, occupancy, c.frequencies, colors, state)
+	code := data.ReadBoolSlice(l)
+	pieces := arithmetic.DecodeAdaptive(code, pieceCount, occupancy, c.frequencies, colors, state)
 
 	// Piece placement.
 	placePieces(&state.Board, occupancy, pieces, colors)

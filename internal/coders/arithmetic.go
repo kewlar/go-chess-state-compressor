@@ -14,7 +14,10 @@ type ArithmeticCoder struct {
 	intervals   map[rune]*arithmetic.Interval
 }
 
-const bitsForArithmeticCodeLength = 7
+const (
+	bitsForArithmeticCodeLength = 7 // The arithmetic code has to fit into 2^7 - 1 bits.
+	maxBitsForArithmeticCode    = (1 << bitsForArithmeticCodeLength) - 1
+)
 
 func NewArithmeticCoder() *ArithmeticCoder {
 	frequencies := map[rune]int{
@@ -46,12 +49,12 @@ func (c *ArithmeticCoder) Encode(state *chess.State) *bitfield.BitField {
 	bf.WriteInt(uint64(color), len(pieces))
 
 	// Arithmetic coding.
-	bits := arithmetic.Encode(piecesToRunes(pieces), c.intervals)
-	if len(bits) > (1<<bitsForArithmeticCodeLength)-1 {
-		log.Fatalf("encoded data too long (%d bits)", len(bits))
+	code := arithmetic.Encode(piecesToRunes(pieces), c.intervals)
+	if len(code) > maxBitsForArithmeticCode {
+		log.Fatalf("encoded data too long (%d bits)", len(code))
 	}
-	bf.WriteInt(uint64(len(bits)), bitsForArithmeticCodeLength)
-	bf.WriteBoolSlice(bits)
+	bf.WriteInt(uint64(len(code)), bitsForArithmeticCodeLength)
+	bf.WriteBoolSlice(code)
 
 	bf.WriteBool(bool(state.SideToMove))
 	bf.WriteBoolSlice(state.Castling.BoolSlice())
@@ -74,8 +77,8 @@ func (c *ArithmeticCoder) Decode(data *bitfield.BitField) *chess.State {
 
 	// Piece placement: pieces.
 	l := int(data.ReadInt(bitsForArithmeticCodeLength))
-	bits := data.ReadBoolSlice(l)
-	pieces := arithmetic.Decode(bits, pieceCount, c.intervals)
+	code := data.ReadBoolSlice(l)
+	pieces := arithmetic.Decode(code, pieceCount, c.intervals)
 
 	// Piece placement.
 	placePieces(&state.Board, occupancy, pieces, colors)
