@@ -110,7 +110,7 @@ func (c *HuffmanCompactCoder) Decode(bits *bitfield.BitField) *chess.State {
 		from, to = 56, 63
 	}
 	for i := from; i <= to; i++ {
-		if state.Board[i]|32 == 'p' {
+		if state.Board[i].Type() == chess.Pawn {
 			state.EnPassant = chess.Square(i ^ 16)
 			enPassantPawn := state.EnPassant ^ 8
 			state.Board[enPassantPawn], state.Board[i] = state.Board[i], state.Board[enPassantPawn]
