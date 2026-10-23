@@ -68,8 +68,6 @@ func (c *BinaryFenCompactCoder) Encode(state *chess.State) *bitfield.BitField {
 		idx++
 	}
 
-	// GENERATE BITS
-
 	bf := &bitfield.BitField{}
 
 	// Piece placement.

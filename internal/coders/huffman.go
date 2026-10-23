@@ -35,10 +35,10 @@ func (c *HuffmanCoder) Name() string {
 }
 
 func (c *HuffmanCoder) Encode(state *chess.State) *bitfield.BitField {
+	bf := &bitfield.BitField{}
+
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy, color, pieces := separateBoardInformation(state.Board)
-
-	bf := &bitfield.BitField{}
 
 	// Piece placement.
 	bf.WriteInt(occupancy, 64)
@@ -47,19 +47,10 @@ func (c *HuffmanCoder) Encode(state *chess.State) *bitfield.BitField {
 		bf.WriteBoolSlice(c.huffmanDict[rune(piece.Type())].Bits)
 	}
 
-	// Side to move.
 	bf.WriteBool(bool(state.SideToMove))
-
-	// Castling availability.
 	bf.WriteBoolSlice(state.Castling.BoolSlice())
-
-	// En passant square.
 	bf.WriteInt(uint64(state.EnPassant), 7)
-
-	// Halfmove clock.
 	bf.WriteInt(uint64(state.Halfmove), 8)
-
-	// Fullmove number.
 	bf.WriteInt(uint64(state.Fullmove), 14)
 
 	return bf
@@ -87,19 +78,10 @@ func (c *HuffmanCoder) Decode(data *bitfield.BitField) *chess.State {
 		pieces = append(pieces, node.Value)
 	}
 
-	// Side to move.
 	state.SideToMove = chess.Color(data.ReadBool())
-
-	// Castling availability.
 	state.Castling = chess.NewCastling(data.ReadBoolSlice(4))
-
-	// En passant square.
 	state.EnPassant = chess.Square(data.ReadInt(7))
-
-	// Halfmove clock.
 	state.Halfmove = int(data.ReadInt(8))
-
-	// Fullmove number.
 	state.Fullmove = int(data.ReadInt(14))
 
 	// Piece placement.
