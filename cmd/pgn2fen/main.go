@@ -42,7 +42,6 @@ func main() {
 		game, err := scanner.ParseNext()
 		if err != nil {
 			log.Fatalf("Error scanning PGN: %v", err)
-			continue
 		}
 
 		newGame := chess.NewGame()
