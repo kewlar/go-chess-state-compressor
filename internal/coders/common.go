@@ -140,3 +140,20 @@ func piecesToRunes(pieces []chess.Piece) []rune {
 	}
 	return runes
 }
+
+func maybeOriginalColorRanks(state *chess.State) bool {
+	return state.Fullmove < 3 || state.Fullmove == 3 && state.SideToMove == chess.White
+}
+
+func reallyOriginalColorRanks(board chess.Board) bool {
+	for i := range 16 {
+		if board[i] != chess.Empty && board[i].Color() != chess.Black {
+			return false
+		}
+		j := 48 + i
+		if board[j] != chess.Empty && board[j].Color() != chess.White {
+			return false
+		}
+	}
+	return true
+}
