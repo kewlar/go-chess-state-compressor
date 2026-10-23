@@ -35,7 +35,7 @@ func TestCodersRoundTrip(t *testing.T) {
 		},
 		{
 			name: "18 Queens, no pieces on home ranks",
-			fen:  "3qQq1q/1rkb1Q1q/Q6q/7q/Q7/Q5K1/Q1q3B1/QqQq1QR1 b - - 0 80",
+			fen:  "8/1rkbqQ1q/Q3Qq1q/1qq4q/Q7/Q4QK1/QQqQq1BR/8 b - - 12 86",
 		},
 		{
 			name: "Ending for the longest possible game",
