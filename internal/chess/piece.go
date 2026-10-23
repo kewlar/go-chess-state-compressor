@@ -29,7 +29,7 @@ const (
 
 // NewPiece returns a new piece, given pieceType and color.
 func NewPiece(pieceType rune, color Color) Piece {
-	p := Piece(pieceType)
+	p := Piece(pieceType | 0b0010_0000)
 	if color == White {
 		p &= 0b1101_1111
 	}

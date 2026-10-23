@@ -15,6 +15,7 @@ func TestNewPiece(t *testing.T) {
 	}{
 		{name: "White Pawn", pieceType: rune(chess.Pawn), color: chess.White, expected: chess.WhitePawn},
 		{name: "Black Queen", pieceType: rune(chess.Queen), color: chess.Black, expected: chess.BlackQueen},
+		{name: "Black Bishop", pieceType: rune(chess.WhiteBishop), color: chess.Black, expected: chess.BlackBishop},
 	}
 
 	for _, tt := range tests {
