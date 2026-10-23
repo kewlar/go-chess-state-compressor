@@ -169,7 +169,6 @@ func (state *State) ToFen() string {
 
 	// Piece placement.
 	empty := 0
-	idx := 0
 	for i, piece := range state.Board {
 		if i&7 == 0 && i != 0 {
 			if empty > 0 {
@@ -184,7 +183,6 @@ func (state *State) ToFen() string {
 				empty = 0
 			}
 			fen.WriteRune(rune(piece))
-			idx++
 		} else {
 			empty++
 		}
