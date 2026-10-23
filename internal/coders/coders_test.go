@@ -99,6 +99,7 @@ func TestCodersRoundTrip(t *testing.T) {
 		coders.NewBinaryFenCoder(),
 		coders.NewBinaryFenCompactCoder(),
 		coders.NewHuffmanCoder(),
+		coders.NewHuffmanAdaptiveCoder(),
 		coders.NewHuffmanCompactCoder(),
 		coders.NewArithmeticCoder(),
 		coders.NewArithmeticByCountCoder(),

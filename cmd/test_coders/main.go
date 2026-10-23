@@ -21,16 +21,20 @@ type BenchResult struct {
 func main() {
 	// Configure available coders here.
 	coders := []coders.Coder{
+		// Baseline - encode state to FEN.
 		coders.NewFenCoder(),
+		// Raw metadata; only piece encoding differs.
 		coders.NewBinaryFenCoder(),
-		coders.NewBinaryFenCompactCoder(),
 		coders.NewHuffmanCoder(),
-		coders.NewHuffmanCompactCoder(),
+		coders.NewHuffmanAdaptiveCoder(),
 		coders.NewArithmeticCoder(),
 		coders.NewArithmeticByCountCoder(),
 		coders.NewArithmeticAdaptiveCoder(),
-		coders.NewArithmeticAdaptiveCompactCoder(),
+		// Various tricks being used to compress the data.
+		coders.NewBinaryFenCompactCoder(),
+		coders.NewHuffmanCompactCoder(),
 		coders.NewHuffmanAdaptiveCompactCoder(),
+		coders.NewArithmeticAdaptiveCompactCoder(),
 		coders.NewArithmeticAdaptiveCompact2Coder(),
 	}
 
