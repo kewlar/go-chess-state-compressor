@@ -119,34 +119,32 @@ func (c *BinaryFenCompactCoder) Decode(data *bitfield.BitField) *chess.State {
 	// Side to move.
 	state.SideToMove = chess.Color(data.ReadBool())
 
-	// En passant square.
-	state.EnPassant = 64 // To be parsed from piece codes.
-
 	// Halfmove clock & fullMove number.
 	moveNum := int(data.ReadInt(21))
 	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 
-	// Piece placement.
+	// En passant and castling.
 	idx := 0
 	for i, occupied := range occupancy {
 		if occupied {
-			piece, color := pieces[idx], colors[idx]
-			if piece == 'P' { // En passant pawn
+			switch pieces[idx] {
+			case 'P': // En passant pawn
 				state.EnPassant = chess.Square(i ^ 8)
-				piece = 'p'
-			} else if piece == 'R' { // Tainted rook
-				piece = 'r'
-			} else if piece == 'r' { // Castling-available rook
+				pieces[idx] = 'p'
+			case 'R': // Tainted rook
+				pieces[idx] = 'r'
+			case 'r': // Castling-available rook
 				for j, cell := range c.castlingSquares {
 					if i == cell {
 						state.Castling[c.castlingOptions[j]] = true
 					}
 				}
 			}
-			state.Board[i] = chess.NewPiece(piece, chess.Color(color))
 			idx++
 		}
 	}
+	// Piece placement.
+	placePieces(&state.Board, occupancy, pieces, colors)
 
 	return state
 }

@@ -117,13 +117,7 @@ func (c *ArithmeticCoder) Decode(data *bitfield.BitField) *chess.State {
 	state.Fullmove = int(data.ReadInt(14))
 
 	// Piece placement.
-	idx := 0
-	for i, occupied := range occupancy {
-		if occupied {
-			state.Board[i] = chess.NewPiece(pieces[idx], chess.Color(colors[idx]))
-			idx++
-		}
-	}
+	placePieces(&state.Board, occupancy, pieces, colors)
 
 	return state
 }

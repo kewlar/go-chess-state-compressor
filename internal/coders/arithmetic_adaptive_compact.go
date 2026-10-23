@@ -237,13 +237,7 @@ func (c *ArithmeticAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.
 	pieces := arithmetic.DecodeAdaptive(bits, pieceCount, occupancy, c.frequencies, colors, state)
 
 	// Piece placement.
-	idx := 0
-	for i, occupied := range occupancy {
-		if occupied {
-			state.Board[i] = chess.NewPiece(pieces[idx], chess.Color(colors[idx]))
-			idx++
-		}
-	}
+	placePieces(&state.Board, occupancy, pieces, colors)
 
 	return state
 }

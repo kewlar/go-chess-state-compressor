@@ -105,3 +105,14 @@ func applyMove(state *chess.State, move chess.Move) {
 		state.Fullmove++
 	}
 }
+
+// placePieces places pieces on board given an occupancy bitboard, and lists of pieces and their colors.
+func placePieces(board *chess.Board, occupancy []bool, pieces []rune, colors []bool) {
+	idx := 0
+	for i, occupied := range occupancy {
+		if occupied {
+			board[i] = chess.NewPiece(pieces[idx], chess.Color(colors[idx]))
+			idx++
+		}
+	}
+}

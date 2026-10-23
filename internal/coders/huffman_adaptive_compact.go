@@ -268,13 +268,7 @@ func (c *HuffmanAdaptiveCompactCoder) Decode(data *bitfield.BitField) *chess.Sta
 	}
 
 	// Piece placement.
-	idx = 0
-	for i, occupied := range occupancy {
-		if occupied {
-			state.Board[i] = chess.NewPiece(pieces[idx], chess.Color(colors[idx]))
-			idx++
-		}
-	}
+	placePieces(&state.Board, occupancy, pieces, colors)
 
 	return state
 }

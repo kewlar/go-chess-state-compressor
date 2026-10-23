@@ -114,13 +114,7 @@ func (c *HuffmanCompactCoder) Decode(data *bitfield.BitField) *chess.State {
 	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 
 	// Piece placement.
-	idx := 0
-	for i, occupied := range occupancy {
-		if occupied {
-			state.Board[i] = chess.NewPiece(pieces[idx], chess.Color(colors[idx]))
-			idx++
-		}
-	}
+	placePieces(&state.Board, occupancy, pieces, colors)
 
 	// Restore en passant pawn.
 	state.EnPassant = chess.InvalidSquare
