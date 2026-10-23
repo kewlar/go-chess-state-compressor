@@ -33,7 +33,7 @@ func NewBinaryFenCompactCoder() *BinaryFenCompactCoder {
 }
 
 func (c *BinaryFenCompactCoder) Name() string {
-	return "BinaryFenCompact"
+	return "BinaryFen (compact)"
 }
 
 func (c *BinaryFenCompactCoder) Encode(state *chess.State) *bitfield.BitField {

@@ -31,7 +31,7 @@ func NewHuffmanCompactCoder() *HuffmanCompactCoder {
 }
 
 func (c *HuffmanCompactCoder) Name() string {
-	return "HuffmanCompact"
+	return "Huffman (compact)"
 }
 
 func (c *HuffmanCompactCoder) Encode(state *chess.State) *bitfield.BitField {
