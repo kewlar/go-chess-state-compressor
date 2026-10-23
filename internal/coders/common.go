@@ -106,6 +106,22 @@ func applyMove(state *chess.State, move chess.Move) {
 	}
 }
 
+// separateBoardInformation separates board into separate variables for occupancy bitboard, color, and piece list.
+func separateBoardInformation(board chess.Board) (occupancy uint64, color uint32, pieces []chess.Piece) {
+	for cell, piece := range board {
+		if piece.IsEmpty() {
+			continue
+		}
+
+		occupancy |= 1 << cell
+		if piece.Color() == chess.White {
+			color |= 1 << len(pieces)
+		}
+		pieces = append(pieces, piece)
+	}
+	return
+}
+
 // placePieces places pieces on board given an occupancy bitboard, and lists of pieces and their colors.
 func placePieces(board *chess.Board, occupancy []bool, pieces []rune, colors []bool) {
 	idx := 0
@@ -115,4 +131,12 @@ func placePieces(board *chess.Board, occupancy []bool, pieces []rune, colors []b
 			idx++
 		}
 	}
+}
+
+func piecesToRunes(pieces []chess.Piece) []rune {
+	runes := make([]rune, len(pieces))
+	for i, piece := range pieces {
+		runes[i] = rune(piece.Type())
+	}
+	return runes
 }

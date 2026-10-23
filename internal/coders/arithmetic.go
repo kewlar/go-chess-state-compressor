@@ -38,20 +38,7 @@ func (c *ArithmeticCoder) Name() string {
 
 func (c *ArithmeticCoder) Encode(state *chess.State) *bitfield.BitField {
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
-	occupancy := uint64(0)
-	color := uint32(0)
-	pieces := []rune{}
-	for cell, piece := range state.Board {
-		if piece.IsEmpty() {
-			continue
-		}
-
-		occupancy |= 1 << cell
-		if piece.Color() == chess.White {
-			color |= 1 << len(pieces)
-		}
-		pieces = append(pieces, rune(piece.Type()))
-	}
+	occupancy, color, pieces := separateBoardInformation(state.Board)
 
 	bf := &bitfield.BitField{}
 
@@ -60,7 +47,7 @@ func (c *ArithmeticCoder) Encode(state *chess.State) *bitfield.BitField {
 	bf.WriteInt(uint64(color), len(pieces))
 
 	// Arithmetic coding.
-	bits := arithmetic.Encode(pieces, c.intervals)
+	bits := arithmetic.Encode(piecesToRunes(pieces), c.intervals)
 
 	if len(bits) > (1<<bitsForArithmeticCodeLength)-1 {
 		log.Fatalf("encoded data too long (%d bits)", len(bits))

@@ -36,20 +36,7 @@ func (c *HuffmanCoder) Name() string {
 
 func (c *HuffmanCoder) Encode(state *chess.State) *bitfield.BitField {
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
-	occupancy := uint64(0)
-	color := uint32(0)
-	pieces := []chess.Piece{}
-	for cell, piece := range state.Board {
-		if piece.IsEmpty() {
-			continue
-		}
-
-		occupancy |= 1 << cell
-		if piece.Color() == chess.White {
-			color |= 1 << len(pieces)
-		}
-		pieces = append(pieces, piece)
-	}
+	occupancy, color, pieces := separateBoardInformation(state.Board)
 
 	bf := &bitfield.BitField{}
 
