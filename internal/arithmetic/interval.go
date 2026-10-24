@@ -23,7 +23,7 @@ func (a *Interval) Length() *Rational {
 }
 
 func (a *Interval) length(tmp *scratch) *Rational {
-	return tmp.l.Sub(a.b, a.a)
+	return NewRational(0, 1).sub(a.b, a.a, tmp)
 }
 
 // Mul multiplies one interval by another. Or, to put it differently, it returns interval a inside interval b.
