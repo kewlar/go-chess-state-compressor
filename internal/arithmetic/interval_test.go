@@ -14,7 +14,7 @@ func TestIntervalLength(t *testing.T) {
 		expected *arithmetic.Rational
 	}{
 		{"Interval length 1", arithmetic.NewRational(0, 1), arithmetic.NewRational(1, 1), arithmetic.NewRational(1, 1)},
-		{"Interval length 1", arithmetic.NewRational(1, 32), arithmetic.NewRational(3, 16), arithmetic.NewRational(5, 32)},
+		{"Interval length 5/32", arithmetic.NewRational(1, 32), arithmetic.NewRational(3, 16), arithmetic.NewRational(5, 32)},
 	}
 
 	for _, tt := range tests {

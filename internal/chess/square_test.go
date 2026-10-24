@@ -147,13 +147,13 @@ func TestSquareIsOnHomeRank(t *testing.T) {
 		expected bool
 	}{
 		{name: "a1", square: chess.A1, expected: true},
-		{name: "a8", square: chess.B1, expected: true},
-		{name: "h1", square: chess.G8, expected: true},
+		{name: "b1", square: chess.B1, expected: true},
+		{name: "g8", square: chess.G8, expected: true},
 		{name: "h8", square: chess.H8, expected: true},
-		{name: "a1", square: chess.A2, expected: false},
-		{name: "a8", square: chess.B4, expected: false},
-		{name: "h1", square: chess.G7, expected: false},
-		{name: "h8", square: chess.H6, expected: false},
+		{name: "a2", square: chess.A2, expected: false},
+		{name: "b4", square: chess.B4, expected: false},
+		{name: "g7", square: chess.G7, expected: false},
+		{name: "h6", square: chess.H6, expected: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -172,8 +172,8 @@ func TestSquareIsValid(t *testing.T) {
 		expected bool
 	}{
 		{name: "a1", square: chess.A1, expected: true},
-		{name: "a8", square: chess.B1, expected: true},
-		{name: "h1", square: chess.G8, expected: true},
+		{name: "b1", square: chess.B1, expected: true},
+		{name: "g8", square: chess.G8, expected: true},
 		{name: "h8", square: chess.H8, expected: true},
 		{name: "Invalid square", square: chess.InvalidSquare, expected: false},
 	}
@@ -194,8 +194,8 @@ func TestSquareString(t *testing.T) {
 		expected string
 	}{
 		{name: "a1", square: chess.A1, expected: "a1"},
-		{name: "a8", square: chess.B2, expected: "b2"},
-		{name: "h1", square: chess.G5, expected: "g5"},
+		{name: "b2", square: chess.B2, expected: "b2"},
+		{name: "g5", square: chess.G5, expected: "g5"},
 		{name: "h8", square: chess.H8, expected: "h8"},
 		{name: "Invalid square", square: chess.InvalidSquare, expected: "-"},
 	}

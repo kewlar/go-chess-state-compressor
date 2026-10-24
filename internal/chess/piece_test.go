@@ -117,7 +117,7 @@ func TestPieceColor(t *testing.T) {
 		expected chess.Color
 	}{
 		{name: "A Black Rook is Black", piece: chess.BlackRook, expected: chess.Black},
-		{name: "A White Queen is a Queen", piece: chess.WhiteQueen, expected: chess.White},
+		{name: "A White Queen is White", piece: chess.WhiteQueen, expected: chess.White},
 	}
 
 	for _, tt := range tests {

@@ -41,7 +41,7 @@ func TestFirstBlackMoves(t *testing.T) {
 		}
 	})
 
-	t.Run("Includes e2e4", func(t *testing.T) {
+	t.Run("Includes e7e5", func(t *testing.T) {
 		expectedMove := chess.Move{From: chess.E7, To: chess.E5}
 		if !slices.Contains(chess.FirstBlackMoves(), expectedMove) {
 			t.Error("FirstBlackMoves() did not contain e7e5")
