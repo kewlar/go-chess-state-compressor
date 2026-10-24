@@ -36,6 +36,7 @@ func main() {
 		coders.NewHuffmanAdaptiveCompactCoder(),
 		coders.NewArithmeticAdaptiveCompactCoder(),
 		coders.NewArithmeticAdaptiveCompact2Coder(),
+		coders.NewHuffmanAdaptiveCompact2Coder(),
 	}
 
 	// Prepare to read input data.

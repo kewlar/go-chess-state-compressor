@@ -27,6 +27,7 @@ func testCoders() []coders.Coder {
 		coders.NewArithmeticAdaptiveCompactCoder(),
 		coders.NewHuffmanAdaptiveCompactCoder(),
 		coders.NewArithmeticAdaptiveCompact2Coder(),
+		coders.NewHuffmanAdaptiveCompact2Coder(),
 	}
 }
 
