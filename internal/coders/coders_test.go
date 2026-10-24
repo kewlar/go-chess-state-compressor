@@ -8,11 +8,30 @@ import (
 	"example.com/go-chess/internal/coders"
 )
 
-func TestCodersRoundTrip(t *testing.T) {
-	positions := []struct {
-		name string
-		fen  string
-	}{
+type testPosition struct {
+	name string
+	fen  string
+}
+
+func testCoders() []coders.Coder {
+	return []coders.Coder{
+		coders.NewFenCoder(),
+		coders.NewBinaryFenCoder(),
+		coders.NewBinaryFenCompactCoder(),
+		coders.NewHuffmanCoder(),
+		coders.NewHuffmanAdaptiveCoder(),
+		coders.NewHuffmanCompactCoder(),
+		coders.NewArithmeticCoder(),
+		coders.NewArithmeticByCountCoder(),
+		coders.NewArithmeticAdaptiveCoder(),
+		coders.NewArithmeticAdaptiveCompactCoder(),
+		coders.NewHuffmanAdaptiveCompactCoder(),
+		coders.NewArithmeticAdaptiveCompact2Coder(),
+	}
+}
+
+func testPositions() []testPosition {
+	return []testPosition{
 		{
 			name: "Starting position",
 			fen:  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -94,21 +113,11 @@ func TestCodersRoundTrip(t *testing.T) {
 			fen:  "rnbqk1nr/pppp1Qpp/8/4p3/4P3/b7/PPPP1PPP/RNB1KBNR b KQkq - 0 3",
 		},
 	}
-	coders := []coders.Coder{
-		coders.NewFenCoder(),
-		coders.NewBinaryFenCoder(),
-		coders.NewBinaryFenCompactCoder(),
-		coders.NewHuffmanCoder(),
-		coders.NewHuffmanAdaptiveCoder(),
-		coders.NewHuffmanCompactCoder(),
-		coders.NewArithmeticCoder(),
-		coders.NewArithmeticByCountCoder(),
-		coders.NewArithmeticAdaptiveCoder(),
-		coders.NewArithmeticAdaptiveCompactCoder(),
-		coders.NewHuffmanAdaptiveCompactCoder(),
-		coders.NewArithmeticAdaptiveCompact2Coder(),
-	}
+}
 
+func TestCodersRoundTrip(t *testing.T) {
+	coders := testCoders()
+	positions := testPositions()
 	for _, coder := range coders {
 		for _, position := range positions {
 			t.Run(fmt.Sprintf("%s: %s", coder.Name(), position.name), func(t *testing.T) {
