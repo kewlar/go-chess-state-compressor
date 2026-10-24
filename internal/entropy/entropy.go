@@ -80,6 +80,19 @@ func AdjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 		freqs['k'] = 0
 	}
 
+	// If it's en-passant Pawn square, the only piece possible is a Pawn.
+	if state.EnPassant.IsValid() {
+		pawnSquare := state.EnPassant ^ 0b1000
+		if square == pawnSquare {
+			freqs['r'] = 0
+			freqs['n'] = 0
+			freqs['b'] = 0
+			freqs['p'] = 1
+			freqs['k'] = 0
+			freqs['q'] = 0
+		}
+	}
+
 	// If castling is available, the only piece on the Rook square can be a Rook.
 	whiteCanCastle := state.Castling['K'] || state.Castling['Q']
 	blackCanCastle := state.Castling['k'] || state.Castling['q']
