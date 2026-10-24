@@ -69,7 +69,8 @@ func TestRationalAdd(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual := tt.a.Add(tt.a, tt.b)
+			actual := arithmetic.NewRational(0, 1)
+			actual.Add(tt.a, tt.b)
 			if actual.Cmp(tt.expected) != 0 {
 				t.Errorf("Add(%s, %s) = %s; expected %s", tt.a.String(), tt.b.String(), actual.String(), tt.expected.String())
 			}
@@ -91,7 +92,8 @@ func TestRationalSub(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual := tt.a.Sub(tt.a, tt.b)
+			actual := arithmetic.NewRational(0, 1)
+			actual.Sub(tt.a, tt.b)
 			if actual.Cmp(tt.expected) != 0 {
 				t.Errorf("Sub(%s, %s) = %s; expected %s", tt.a.String(), tt.b.String(), actual.String(), tt.expected.String())
 			}
@@ -113,7 +115,8 @@ func TestRationalMul(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual := tt.a.Mul(tt.a, tt.b)
+			actual := arithmetic.NewRational(0, 1)
+			actual.Mul(tt.a, tt.b)
 			if actual.Cmp(tt.expected) != 0 {
 				t.Errorf("Mul(%s, %s) = %s; expected %s", tt.a.String(), tt.b.String(), actual.String(), tt.expected.String())
 			}
@@ -135,7 +138,8 @@ func TestRationalDiv(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual := tt.a.Div(tt.a, tt.b)
+			actual := arithmetic.NewRational(0, 1)
+			actual.Div(tt.a, tt.b)
 			if actual.Cmp(tt.expected) != 0 {
 				t.Errorf("Div(%s, %s) = %s; expected %s", tt.a.String(), tt.b.String(), actual.String(), tt.expected.String())
 			}
