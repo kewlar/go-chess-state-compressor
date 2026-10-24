@@ -24,8 +24,6 @@ func AdjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 		chess.White: chess.InvalidSquare,
 		chess.Black: chess.InvalidSquare,
 	}
-	hasKing := false
-	kingSquare := chess.InvalidSquare
 	sq, idx := chess.Square(0), 0
 	for idx < len(placedPieces) {
 		for !occupancy[sq] {
@@ -37,17 +35,16 @@ func AdjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 			if piece == 'b' {
 				bishopColor := sq.Color()
 				bishops[bishopColor] = true
-			} else if piece == 'k' {
-				hasKing = true
 			}
 		}
 		if piece == 'k' {
 			kings[chess.Color(color[idx])] = sq
-			kingSquare = sq
 		}
 		sq++
 		idx++
 	}
+	kingSquare := kings[pieceColor]
+	opposingKingSquare := kings[pieceColor.Other()]
 
 	promotionPossible := state.Fullmove >= 5 && numPieces < 32
 
@@ -73,13 +70,13 @@ func AdjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 	}
 
 	// There cannot be more than one King per side.
-	if hasKing {
+	if kingSquare.IsValid() {
 		freqs['k'] = 0
 	}
 
 	// Kings cannot be within 1 square of one another.
-	if kingSquare.IsValid() &&
-		tools.Abs(square.Rank()-kingSquare.Rank()) <= 1 && tools.Abs(square.File()-kingSquare.File()) <= 1 {
+	if freqs['k'] > 0 && opposingKingSquare.IsValid() &&
+		tools.Abs(square.Rank()-opposingKingSquare.Rank()) <= 1 && tools.Abs(square.File()-opposingKingSquare.File()) <= 1 {
 		freqs['k'] = 0
 	}
 
