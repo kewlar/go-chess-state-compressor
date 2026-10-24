@@ -135,3 +135,22 @@ func TestCodersRoundTrip(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkCoders(b *testing.B) {
+	coders := testCoders()
+	positions := testPositions()
+	states := make([]*chess.State, len(positions))
+	for i, position := range positions {
+		states[i], _ = chess.ParseFen(position.fen)
+	}
+	for _, coder := range coders {
+		b.Run(coder.Name(), func(b *testing.B) {
+			for b.Loop() {
+				for _, state := range states {
+					encoded := coder.Encode(state)
+					coder.Decode(encoded)
+				}
+			}
+		})
+	}
+}
