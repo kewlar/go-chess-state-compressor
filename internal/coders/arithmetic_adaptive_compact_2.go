@@ -102,7 +102,7 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 		skip[state.EnPassant] = false
 		enPassantHome := chess.Square(int(state.EnPassant) ^ 0b11000)
 		skip[enPassantHome] = false
-	} else {
+	} else if state.Halfmove == 0 { // Only write "no en passant" flag if en passant is at all possible. In this case, the last move might have been a Pawn move.
 		bits.WriteBool(false)
 	}
 
@@ -186,19 +186,22 @@ func (c *ArithmeticAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess
 		}
 	}
 	// En passant square.
-	hasEnPassant := bits.ReadBool()
-	if hasEnPassant {
-		enPassantFile := int(bits.ReadInt(3))
-		rank := 2
-		if state.SideToMove == chess.White {
-			rank = 5
+	hasEnPassant := false
+	if state.Halfmove == 0 { // The last move might have been a Pawn move.
+		hasEnPassant = bits.ReadBool()
+		if hasEnPassant {
+			enPassantFile := int(bits.ReadInt(3))
+			rank := 2
+			if state.SideToMove == chess.White {
+				rank = 5
+			}
+			state.EnPassant = chess.NewSquareFromRankAndFile(rank, enPassantFile)
+			enPassantPawn := chess.Square(int(state.EnPassant) ^ 0b1000)
+			skip[enPassantPawn] = true
+			skip[state.EnPassant] = false
+			enPassantHome := chess.Square(int(state.EnPassant) ^ 0b11000)
+			skip[enPassantHome] = false
 		}
-		state.EnPassant = chess.NewSquareFromRankAndFile(rank, enPassantFile)
-		enPassantPawn := chess.Square(int(state.EnPassant) ^ 0b1000)
-		skip[enPassantPawn] = true
-		skip[state.EnPassant] = false
-		enPassantHome := chess.Square(int(state.EnPassant) ^ 0b11000)
-		skip[enPassantHome] = false
 	}
 
 	// Piece placement: occupancy.

@@ -86,7 +86,7 @@ func (c *ArithmeticAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.Bi
 	if state.EnPassant.IsValid() {
 		bits.WriteBool(true)
 		bits.WriteInt(uint64(state.EnPassant), 3) // Only the lowest 3 bits -- the file -- are necessary.
-	} else {
+	} else if state.Halfmove == 0 { // Only write "no en passant" flag if en passant is at all possible. In this case, the last move might have been a Pawn move.
 		bits.WriteBool(false)
 	}
 
@@ -143,10 +143,13 @@ func (c *ArithmeticAdaptiveCompactCoder) Decode(bits *bitfield.BitField) *chess.
 		state.Castling = chess.NewCastling(bits.ReadBoolSlice(4))
 	}
 	// En passant square.
-	hasEnPassant := bits.ReadBool()
+	hasEnPassant := false
 	enPassantFile := -1
-	if hasEnPassant {
-		enPassantFile = int(bits.ReadInt(3))
+	if state.Halfmove == 0 { // The last move might have been a Pawn move.
+		hasEnPassant = bits.ReadBool()
+		if hasEnPassant {
+			enPassantFile = int(bits.ReadInt(3))
+		}
 	}
 
 	// Piece placement: occupancy.
