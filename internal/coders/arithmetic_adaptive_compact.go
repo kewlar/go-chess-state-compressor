@@ -2,7 +2,6 @@ package coders
 
 import (
 	"log"
-	"slices"
 
 	"example.com/go-chess/internal/arithmetic"
 	"example.com/go-chess/internal/bitfield"
@@ -40,37 +39,33 @@ func (c *ArithmeticAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.Bi
 
 	bits := &bitfield.BitField{}
 
+	// Encode board in separate bitboards for occupancy, color, and a list of pieces
+	occupancy, fullColor, pieces := separateBoardInformation(state.Board)
+
 	// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
 	maybeOriginalColorRanks := maybeOriginalColorRanks(state)
 	originalColorRanks := maybeOriginalColorRanks && reallyOriginalColorRanks(state.Board)
 
-	// Encode board in separate bitboards for occupancy, color, and a list of pieces
-	occupancy := make([]bool, 64)
-	color := uint32(0)
-	fullColor := color
-	pieces := []rune{}
-	colorCount := 0
-	for c, piece := range state.Board {
-		cell := chess.Square(c)
-		if piece.IsEmpty() {
-			continue
-		}
+	// Don't store color for home ranks, if we can help it.
+	color := fullColor
+	colorCount := len(pieces)
+	if originalColorRanks {
+		color = 0
+		colorCount = 0
+		for c, piece := range state.Board {
+			if piece.IsEmpty() {
+				continue
+			}
 
-		logColor := !originalColorRanks || 1 < cell.Rank() && cell.Rank() < 6
-
-		occupancy[cell] = true
-		if piece.Color() == chess.White {
-			fullColor |= 1 << len(pieces)
-			if logColor {
-				color |= 1 << colorCount
+			square := chess.Square(c)
+			if 1 < square.Rank() && square.Rank() < 6 {
+				if piece.Color() == chess.White {
+					color |= 1 << colorCount
+				}
+				colorCount++
 			}
 		}
-		pieces = append(pieces, rune(piece.Type()))
-		if logColor {
-			colorCount++
-		}
 	}
-	fullOccupancy := slices.Clone(occupancy)
 
 	// Halfmove clock & fullmove number.
 	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
@@ -91,18 +86,13 @@ func (c *ArithmeticAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.Bi
 	}
 
 	// Encode side to move in occupancy data, if possible.
-	occupancyOut := uint64(0)
-	for i, occupied := range occupancy {
-		if occupied {
-			occupancyOut |= 1 << i
-		}
-	}
+	occupancyOut := occupancy
 	if len(pieces) < 32 && state.SideToMove == chess.Black {
 		occupancyOut = occupancyOut ^ 0xFF_FF_FF_FF_FF_FF_FF_FF
 	}
 
 	// Piece placement.
-	bits.WriteInt(occupancyOut, len(occupancy))
+	bits.WriteInt(occupancyOut, 64)
 
 	// Side to move.
 	if len(pieces) == 32 {
@@ -116,7 +106,7 @@ func (c *ArithmeticAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.Bi
 	bits.WriteInt(uint64(color), colorCount)
 
 	// Arithmetic coding.
-	code := arithmetic.EncodeAdaptive(pieces, fullOccupancy, c.frequencies, bitfield.IntToBoolSlice(uint64(fullColor), len(pieces)), state)
+	code := arithmetic.EncodeAdaptive(piecesToRunes(pieces), bitfield.IntToBoolSlice(occupancy, 64), c.frequencies, bitfield.IntToBoolSlice(uint64(fullColor), len(pieces)), state)
 	if len(code) > maxBitsForArithmeticCode {
 		log.Fatalf("encoded data too long (%d bits)", len(code))
 	}
