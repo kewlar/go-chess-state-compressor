@@ -2,6 +2,7 @@ package coders
 
 import (
 	"fmt"
+	"slices"
 
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
@@ -162,6 +163,7 @@ func (c *HuffmanAdaptiveCompactCoder) Decode(bits *bitfield.BitField) *chess.Sta
 	occupancy := bits.ReadBoolSlice(64)
 	pieceCount := tools.CountTrue(occupancy)
 
+	// Side to move. May be encoded in the occupancy bitboard.
 	state.SideToMove = chess.White
 	if pieceCount > 32 {
 		for i, x := range occupancy {
@@ -169,10 +171,7 @@ func (c *HuffmanAdaptiveCompactCoder) Decode(bits *bitfield.BitField) *chess.Sta
 		}
 		pieceCount = 64 - pieceCount
 		state.SideToMove = chess.Black
-	}
-
-	// Side to move.
-	if pieceCount == 32 {
+	} else if pieceCount == 32 {
 		state.SideToMove = chess.Color(bits.ReadBool())
 	}
 
@@ -187,32 +186,23 @@ func (c *HuffmanAdaptiveCompactCoder) Decode(bits *bitfield.BitField) *chess.Sta
 	colorCount := pieceCount
 	numBlack, numWhite := 0, 0
 	if originalColorRanks {
-		colorCount = 0
-		for i, x := range occupancy {
-			c := chess.Square(i)
-			if !x {
+		for i, occupied := range occupancy {
+			if !occupied {
 				continue
 			}
-			switch c.Rank() {
+			switch chess.Square(i).Rank() {
 			case 6, 7:
 				numBlack++
 			case 0, 1:
 				numWhite++
-			default:
-				colorCount++
 			}
 		}
+		colorCount -= numBlack + numWhite
 	}
 	colors := bits.ReadBoolSlice(colorCount)
 	if originalColorRanks {
-		blacks := []bool{}
-		for range numBlack {
-			blacks = append(blacks, false)
-		}
-		whites := []bool{}
-		for range numWhite {
-			whites = append(whites, true)
-		}
+		blacks := make([]bool, numBlack)
+		whites := slices.Repeat([]bool{true}, numWhite)
 		colors = append(blacks, colors...)
 		colors = append(colors, whites...)
 	}
