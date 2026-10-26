@@ -2,7 +2,6 @@ package coders
 
 import (
 	"log"
-	"slices"
 
 	"example.com/go-chess/internal/arithmetic"
 	"example.com/go-chess/internal/bitfield"
@@ -45,17 +44,12 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 	originalColorRanks := maybeOriginalColorRanks && reallyOriginalColorRanks(state.Board)
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
-	occupancy := make([]bool, 64)
+	occupancy, fullColor, pieces := separateBoardInformation(state.Board)
 	color := make([]bool, 64)
-	fullColor := []bool{}
-	pieces := []rune{}
 	for square, piece := range state.Board.OccupiedSquares() {
-		occupancy[square] = true
 		color[square] = piece.Color() == chess.White
-		pieces = append(pieces, rune(piece.Type()))
-		fullColor = append(fullColor, piece.Color() == chess.White)
 	}
-	fullOccupancy := slices.Clone(occupancy)
+	fullOccupancy := bitfield.IntToBoolSlice(occupancy, 64)
 
 	// Halfmove clock & fullmove number.
 	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
@@ -106,11 +100,11 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 	for s := range skip {
 		skippedSquares = append(skippedSquares, int(s))
 	}
-	occupancyOut := tools.WithoutSquares(occupancy, skippedSquares)
+	occupancyOut := tools.WithoutSquares(fullOccupancy, skippedSquares)
 	bits.WriteBoolSlice(occupancyOut)
 
 	// Piece colors.
-	for cell, isOccupied := range occupancy {
+	for cell, isOccupied := range fullOccupancy {
 		if !isOccupied {
 			skip[chess.Square(cell)] = true
 		}
@@ -133,7 +127,8 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 	bits.WriteBoolSlice(colorOut)
 
 	// Arithmetic coding.
-	code := arithmetic.EncodeAdaptive(pieces, fullOccupancy, c.frequencies, fullColor, state)
+	colorSlice := bitfield.IntToBoolSlice(uint64(fullColor), len(pieces))
+	code := arithmetic.EncodeAdaptive(piecesToRunes(pieces), fullOccupancy, c.frequencies, colorSlice, state)
 	if len(code) > maxBitsForArithmeticCode {
 		log.Fatalf("encoded data too long (%d bits)", len(code))
 	}

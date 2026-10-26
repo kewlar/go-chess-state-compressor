@@ -2,7 +2,6 @@ package coders
 
 import (
 	"fmt"
-	"slices"
 
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
@@ -46,17 +45,12 @@ func (c *HuffmanAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.BitF
 	originalColorRanks := maybeOriginalColorRanks && reallyOriginalColorRanks(state.Board)
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
-	occupancy := make([]bool, 64)
+	occupancy, fullColor, pieces := separateBoardInformation(state.Board)
 	color := make([]bool, 64)
-	fullColor := []bool{}
-	pieces := []rune{}
 	for square, piece := range state.Board.OccupiedSquares() {
-		occupancy[square] = true
 		color[square] = piece.Color() == chess.White
-		pieces = append(pieces, rune(piece.Type()))
-		fullColor = append(fullColor, piece.Color() == chess.White)
 	}
-	fullOccupancy := slices.Clone(occupancy)
+	fullOccupancy := bitfield.IntToBoolSlice(occupancy, 64)
 
 	// Halfmove clock & fullmove number.
 	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
@@ -107,11 +101,11 @@ func (c *HuffmanAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.BitF
 	for s := range skip {
 		skippedSquares = append(skippedSquares, int(s))
 	}
-	occupancyOut := tools.WithoutSquares(occupancy, skippedSquares)
+	occupancyOut := tools.WithoutSquares(fullOccupancy, skippedSquares)
 	bits.WriteBoolSlice(occupancyOut)
 
 	// Piece colors.
-	for cell, isOccupied := range occupancy {
+	for cell, isOccupied := range fullOccupancy {
 		if !isOccupied {
 			skip[chess.Square(cell)] = true
 		}
@@ -136,11 +130,13 @@ func (c *HuffmanAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.BitF
 	// Huffman coding.
 	n := len(pieces)
 	freqs := entropy.PrepareFrequencies(n, c.frequencies)
+	colorSlice := bitfield.IntToBoolSlice(uint64(fullColor), len(pieces))
 	idx := 0
+	runes := piecesToRunes(pieces)
 	for i := range 64 {
 		if fullOccupancy[i] {
-			freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(i), n, fullOccupancy, fullColor, state, pieces[:idx])
-			piece := pieces[idx]
+			freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(i), n, fullOccupancy, colorSlice, state, runes[:idx])
+			piece := runes[idx]
 			if freqs2[piece] == 0 {
 				panic(fmt.Sprintf("didn't expect '%s' at square %s", string(piece), chess.Square(i).String()))
 			}
