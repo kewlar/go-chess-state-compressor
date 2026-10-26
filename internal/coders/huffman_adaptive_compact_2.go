@@ -139,16 +139,8 @@ func (c *HuffmanAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.BitF
 	bits.WriteBoolSlice(colorOut)
 
 	// Huffman coding.
-	// code := arithmetic.EncodeAdaptive(pieces, fullOccupancy, c.frequencies, fullColor, state)
-	// if len(code) > maxBitsForHuffmanCode {
-	// 	log.Fatalf("encoded data too long (%d bits)", len(code))
-	// }
-	// bits.WriteInt(uint64(len(code)), bitsForHuffmanCodeLength)
-	// bits.WriteBoolSlice(code)
 	n := len(pieces)
 	freqs := entropy.PrepareFrequencies(n, c.frequencies)
-	// colorSlice := bitfield.IntToBoolSlice(uint64(color), len(pieces))
-	// fullOccupancy := bitfield.IntToBoolSlice(occupancy, 64)
 	idx := 0
 	for i := range 64 {
 		if fullOccupancy[i] {
@@ -282,9 +274,6 @@ func (c *HuffmanAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess.St
 	}
 
 	// Piece placement: pieces.
-	// l := int(bits.ReadInt(bitsForHuffmanCodeLength))
-	// code := bits.ReadBoolSlice(l)
-	// pieces := arithmetic.DecodeAdaptive(code, pieceCount, occupancy, c.frequencies, colors, state)
 	pieces := make([]rune, 0, pieceCount)
 	freqs := entropy.PrepareFrequencies(pieceCount, c.frequencies)
 	idx := 0
