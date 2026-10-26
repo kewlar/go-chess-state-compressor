@@ -7,6 +7,7 @@ import (
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
 	"example.com/go-chess/internal/tools"
+	"example.com/go-chess/internal/tools/square_skipper"
 )
 
 type ArithmeticAdaptiveCompact2Coder struct {
@@ -45,7 +46,7 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy, fullColor, pieces := separateBoardInformation(state.Board)
-	color := make([]bool, 64)
+	color := make([]bool, 64) // TODO: color := inspector.Color64()
 	for square, piece := range state.Board.OccupiedSquares() {
 		color[square] = piece.Color() == chess.White
 	}
@@ -55,7 +56,7 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
 	bits.WriteInt(uint64(moveNum), 21)
 
-	skip := map[chess.Square]bool{} // Map of squares to skip in occupancy data.
+	skipper := square_skipper.NewSquareSkipper()
 
 	// Side to move.
 	bits.WriteBool(bool(state.SideToMove))
@@ -64,63 +65,28 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 	bits.WriteBool(state.Castling.IsAvailable())
 	if state.Castling.IsAvailable() {
 		bits.WriteBoolSlice(state.Castling.BoolSlice())
-		if state.Castling['K'] {
-			skip[chess.E1] = true
-			skip[chess.H1] = true
-		}
-		if state.Castling['Q'] {
-			skip[chess.E1] = true
-			skip[chess.A1] = true
-		}
-		if state.Castling['k'] {
-			skip[chess.E8] = true
-			skip[chess.H8] = true
-		}
-		if state.Castling['q'] {
-			skip[chess.E8] = true
-			skip[chess.A8] = true
-		}
+		skipper.SkipCastling(state.Castling, square_skipper.Occupancy)
 	}
 
 	// En passant square.
 	if state.EnPassant.IsValid() {
 		bits.WriteBool(true)
 		bits.WriteInt(uint64(state.EnPassant), 3) // Only the lowest 3 bits -- the file -- are necessary.
-		enPassantPawn := chess.Square(int(state.EnPassant) ^ 0b1000)
-		skip[enPassantPawn] = true
-		skip[state.EnPassant] = false
-		enPassantHome := chess.Square(int(state.EnPassant) ^ 0b11000)
-		skip[enPassantHome] = false
+		skipper.SkipEnPassant(state.EnPassant, square_skipper.Occupancy)
 	} else if state.Halfmove == 0 { // Only write "no en passant" flag if en passant is at all possible. In this case, the last move might have been a Pawn move.
 		bits.WriteBool(false)
 	}
 
 	// Piece placement.
-	skippedSquares := []int{}
-	for s := range skip {
-		skippedSquares = append(skippedSquares, int(s))
-	}
-	occupancyOut := tools.WithoutSquares(fullOccupancy, skippedSquares)
+	occupancyOut := skipper.Deflate(fullOccupancy)
 	bits.WriteBoolSlice(occupancyOut)
 
 	// Piece colors.
-	for cell, isOccupied := range fullOccupancy {
-		if !isOccupied {
-			skip[chess.Square(cell)] = true
-		}
-	}
+	skipper.SkipEmpty(fullOccupancy)
 	if originalColorRanks {
-		for file := range 8 {
-			for _, rank := range []int{0, 1, 6, 7} {
-				skip[chess.NewSquareFromRankAndFile(rank, file)] = true
-			}
-		}
+		skipper.SkipOriginalRanks(square_skipper.Occupancy)
 	}
-	skippedSquares = []int{}
-	for s := range skip {
-		skippedSquares = append(skippedSquares, int(s))
-	}
-	colorOut := tools.WithoutSquares(color, skippedSquares)
+	colorOut := skipper.Deflate(color)
 	if maybeOriginalColorRanks {
 		bits.WriteBool(originalColorRanks)
 	}
@@ -152,28 +118,13 @@ func (c *ArithmeticAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess
 	// Side to move.
 	state.SideToMove = chess.Color(bits.ReadBool())
 
-	skip := map[chess.Square]bool{} // Squares that are skipped in occupancy data.
+	skipper := square_skipper.NewSquareSkipper()
 
 	// Castling availability.
 	hasCastling := bits.ReadBool()
 	if hasCastling {
 		state.Castling = chess.NewCastling(bits.ReadBoolSlice(4))
-		if state.Castling['K'] {
-			skip[chess.E1] = true
-			skip[chess.H1] = true
-		}
-		if state.Castling['Q'] {
-			skip[chess.E1] = true
-			skip[chess.A1] = true
-		}
-		if state.Castling['k'] {
-			skip[chess.E8] = true
-			skip[chess.H8] = true
-		}
-		if state.Castling['q'] {
-			skip[chess.E8] = true
-			skip[chess.A8] = true
-		}
+		skipper.SkipCastling(state.Castling, square_skipper.Occupancy)
 	}
 	// En passant square.
 	hasEnPassant := false
@@ -186,29 +137,17 @@ func (c *ArithmeticAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess
 				rank = 5
 			}
 			state.EnPassant = chess.NewSquareFromRankAndFile(rank, enPassantFile)
-			enPassantPawn := chess.Square(int(state.EnPassant) ^ 0b1000)
-			skip[enPassantPawn] = true
-			skip[state.EnPassant] = false
-			enPassantHome := chess.Square(int(state.EnPassant) ^ 0b11000)
-			skip[enPassantHome] = false
+			skipper.SkipEnPassant(state.EnPassant, square_skipper.Occupancy)
 		}
 	}
 
 	// Piece placement: occupancy.
-	skippedSquares := map[int]bool{}
-	for s, x := range skip {
-		skippedSquares[int(s)] = x
-	}
-	occupancy := bits.ReadBoolSlice(64 - len(skippedSquares))
-	occupancy = tools.WithSquares(occupancy, skippedSquares)
+	occupancyIn := bits.ReadBoolSlice(64 - skipper.Length())
+	occupancy := skipper.Inflate(occupancyIn)
 	pieceCount := tools.CountTrue(occupancy)
 
 	// Restore full-board piece color map. True = White, False = Black or empty.
-	for cell, isOccupied := range occupancy {
-		if !isOccupied {
-			skip[chess.Square(cell)] = false // Empty squares to be added.
-		}
-	}
+	skipper.SkipEmpty(occupancy)
 	// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
 	maybeOriginalColorRanks := maybeOriginalColorRanks(state)
 	originalColorRanks := false
@@ -216,33 +155,16 @@ func (c *ArithmeticAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess
 		originalColorRanks = bits.ReadBool()
 	}
 	if originalColorRanks {
-		for file := range 8 {
-			for _, rank := range []int{0, 1, 6, 7} {
-				sq := chess.NewSquareFromRankAndFile(rank, file)
-				skip[sq] = occupancy[sq] && rank <= 1 // White or Black.
-			}
-		}
+		skipper.SkipOriginalRanks(square_skipper.Color)
 	}
-	if state.Castling['k'] {
-		skip[chess.E8] = false // Black squares to be added.
-		skip[chess.H8] = false
-	}
-	if state.Castling['q'] {
-		skip[chess.E8] = false
-		skip[chess.A8] = false
-	}
+	skipper.SkipCastling(state.Castling, square_skipper.Color)
 	if state.EnPassant.IsValid() {
-		enPassantPawn := chess.Square(int(state.EnPassant) ^ 0b1000)
-		skip[enPassantPawn] = state.SideToMove == chess.Black
-	}
-	skippedSquares = map[int]bool{}
-	for s, x := range skip {
-		skippedSquares[int(s)] = x
+		skipper.SkipEnPassant(state.EnPassant, square_skipper.Color)
 	}
 
 	// Piece placement: colors.
-	colorIn := bits.ReadBoolSlice(64 - len(skippedSquares))
-	fullColor := tools.WithSquares(colorIn, skippedSquares)
+	colorIn := bits.ReadBoolSlice(64 - skipper.Length())
+	fullColor := skipper.Inflate(colorIn)
 	colors := []bool{}
 	for i, isOccupied := range occupancy {
 		if isOccupied {
