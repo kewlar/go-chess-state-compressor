@@ -50,14 +50,9 @@ func (c *HuffmanAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.BitF
 	color := make([]bool, 64)
 	fullColor := []bool{}
 	pieces := []rune{}
-	for c, piece := range state.Board {
-		cell := chess.Square(c)
-		if piece.IsEmpty() {
-			continue
-		}
-
-		occupancy[cell] = true
-		color[cell] = piece.Color() == chess.White
+	for square, piece := range state.Board.OccupiedSquares() {
+		occupancy[square] = true
+		color[square] = piece.Color() == chess.White
 		pieces = append(pieces, rune(piece.Type()))
 		fullColor = append(fullColor, piece.Color() == chess.White)
 	}

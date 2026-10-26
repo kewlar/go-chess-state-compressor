@@ -10,14 +10,14 @@ type BinaryFenCompactCoder struct {
 	pieceCodes      [256]byte
 	codePieces      []rune
 	castlingOptions []rune
-	castlingSquares []int
+	castlingSquares []chess.Square
 }
 
 func NewBinaryFenCompactCoder() *BinaryFenCompactCoder {
 	var (
 		codePieces      = []rune{'p', 'k', 'q', 'r', 'b', 'n', 'P', 'R'}
 		castlingOptions = []rune{'K', 'Q', 'k', 'q'}
-		castlingSquares = []int{63, 56, 7, 0} // Cell coordinates for castling rooks, respectively KQkq.
+		castlingSquares = []chess.Square{chess.H1, chess.A1, chess.H8, chess.A8} // Cell coordinates for castling rooks, respectively KQkq.
 	)
 	pieceCodes := [256]byte{}
 	for code, piece := range codePieces {
@@ -47,19 +47,15 @@ func (c *BinaryFenCompactCoder) Encode(state *chess.State) *bitfield.BitField {
 	occupancy, color, _pieces := separateBoardInformation(state.Board)
 	pieces := piecesToRunes(_pieces)
 	idx := 0
-	for cell, piece := range state.Board {
-		if piece.IsEmpty() {
-			continue
-		}
-
+	for square, piece := range state.Board.OccupiedSquares() {
 		pieceType := piece.Type()
-		if enPassantPawn == chess.Square(cell) && pieceType == 'p' {
+		if enPassantPawn == square && pieceType == 'p' {
 			pieceType = 'P' // En passant pawn.
 		} else if pieceType == 'r' {
 			pieceType = 'R' // Rook not available for castling by default.
 			// Castling availability.
 			for i, option := range c.castlingOptions {
-				if cell == c.castlingSquares[i] && state.Castling[option] {
+				if square == c.castlingSquares[i] && state.Castling[option] {
 					pieceType = 'r'
 				}
 			}
@@ -129,7 +125,7 @@ func (c *BinaryFenCompactCoder) Decode(bits *bitfield.BitField) *chess.State {
 				pieces[idx] = 'r'
 			case 'r': // Castling-available rook
 				for j, cell := range c.castlingSquares {
-					if i == cell {
+					if chess.Square(i) == cell {
 						state.Castling[c.castlingOptions[j]] = true
 					}
 				}

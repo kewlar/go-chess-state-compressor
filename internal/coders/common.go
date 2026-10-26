@@ -109,12 +109,8 @@ func applyMove(state *chess.State, move chess.Move) {
 
 // separateBoardInformation separates board into separate variables for occupancy bitboard, color, and piece list.
 func separateBoardInformation(board chess.Board) (occupancy uint64, color uint32, pieces []chess.Piece) {
-	for cell, piece := range board {
-		if piece.IsEmpty() {
-			continue
-		}
-
-		occupancy |= 1 << cell
+	for square, piece := range board.OccupiedSquares() {
+		occupancy |= 1 << square
 		if piece.Color() == chess.White {
 			color |= 1 << len(pieces)
 		}

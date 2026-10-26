@@ -54,12 +54,7 @@ func (c *HuffmanAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.BitFi
 	if originalColorRanks {
 		color = 0
 		colorCount = 0
-		for c, piece := range state.Board {
-			if piece.IsEmpty() {
-				continue
-			}
-
-			square := chess.Square(c)
+		for square, piece := range state.Board.OccupiedSquares() {
 			if 1 < square.Rank() && square.Rank() < 6 {
 				if piece.Color() == chess.White {
 					color |= 1 << colorCount
@@ -114,20 +109,18 @@ func (c *HuffmanAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.BitFi
 	idx := 0
 	fullOccupancy := bitfield.IntToBoolSlice(occupancy, 64)
 	runes := piecesToRunes(pieces)
-	for i := range 64 {
-		if fullOccupancy[i] {
-			freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(i), n, fullOccupancy, colorSlice, state, runes[:idx])
-			r := runes[idx]
-			if freqs2[r] == 0 {
-				panic(fmt.Sprintf("didn't expect '%s' at square %s", string(r), chess.Square(i).String()))
-			}
-			tree := huffman.BuildHuffmanTree(freqs2)
-			dict := tree.BuildDictionary()
-			bits.WriteBoolSlice(dict[r].Bits)
-			idx++
-
-			freqs = entropy.UpdateFrequencies(r, n-idx, freqs)
+	for square := range state.Board.OccupiedSquares() {
+		freqs2 := entropy.AdjustFrequencies(freqs, square, n, fullOccupancy, colorSlice, state, runes[:idx])
+		r := runes[idx]
+		if freqs2[r] == 0 {
+			panic(fmt.Sprintf("didn't expect %q at square %s", r, square.String()))
 		}
+		tree := huffman.BuildHuffmanTree(freqs2)
+		dict := tree.BuildDictionary()
+		bits.WriteBoolSlice(dict[r].Bits)
+		idx++
+
+		freqs = entropy.UpdateFrequencies(r, n-idx, freqs)
 	}
 
 	return bits

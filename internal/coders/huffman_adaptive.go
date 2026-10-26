@@ -55,20 +55,18 @@ func (c *HuffmanAdaptiveCoder) Encode(state *chess.State) *bitfield.BitField {
 	fullOccupancy := bitfield.IntToBoolSlice(occupancy, 64)
 	runes := piecesToRunes(pieces)
 	idx := 0
-	for i := range 64 {
-		if fullOccupancy[i] {
-			freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(i), n, fullOccupancy, colorSlice, state, runes[:idx])
-			r := runes[idx]
-			if freqs2[r] == 0 {
-				panic(fmt.Sprintf("didn't expect '%s' at square %s", string(r), chess.Square(i).String()))
-			}
-			tree := huffman.BuildHuffmanTree(freqs2)
-			dict := tree.BuildDictionary()
-			bits.WriteBoolSlice(dict[r].Bits)
-			idx++
-
-			freqs = entropy.UpdateFrequencies(r, n-idx, freqs)
+	for square := range state.Board.OccupiedSquares() {
+		freqs2 := entropy.AdjustFrequencies(freqs, square, n, fullOccupancy, colorSlice, state, runes[:idx])
+		r := runes[idx]
+		if freqs2[r] == 0 {
+			panic(fmt.Sprintf("didn't expect %q at square %s", r, square.String()))
 		}
+		tree := huffman.BuildHuffmanTree(freqs2)
+		dict := tree.BuildDictionary()
+		bits.WriteBoolSlice(dict[r].Bits)
+		idx++
+
+		freqs = entropy.UpdateFrequencies(r, n-idx, freqs)
 	}
 
 	return bits

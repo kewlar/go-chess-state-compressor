@@ -53,12 +53,7 @@ func (c *ArithmeticAdaptiveCompactCoder) Encode(state *chess.State) *bitfield.Bi
 	if originalColorRanks {
 		color = 0
 		colorCount = 0
-		for c, piece := range state.Board {
-			if piece.IsEmpty() {
-				continue
-			}
-
-			square := chess.Square(c)
+		for square, piece := range state.Board.OccupiedSquares() {
 			if 1 < square.Rank() && square.Rank() < 6 {
 				if piece.Color() == chess.White {
 					color |= 1 << colorCount
