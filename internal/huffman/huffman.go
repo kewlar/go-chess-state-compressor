@@ -1,6 +1,12 @@
 package huffman
 
-import "slices"
+import (
+	"fmt"
+	"slices"
+
+	"example.com/go-chess/internal/chess"
+	"example.com/go-chess/internal/entropy"
+)
 
 type Node struct {
 	Bits      []bool
@@ -81,4 +87,52 @@ func (tree *Node) BuildDictionary() map[rune]*Node {
 	}
 
 	return dict
+}
+
+func EncodeAdaptive(data []rune, occupancy []bool, frequencies map[rune]int, color []bool, state *chess.State) []bool {
+	bits := []bool{}
+	n := len(data)
+	idx := 0
+	freqs := entropy.PrepareFrequencies(n, frequencies)
+	for i := range 64 {
+		if occupancy[i] {
+			freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(i), n, occupancy, color, state, data[:idx])
+			piece := data[idx]
+			if freqs2[piece] == 0 {
+				panic(fmt.Sprintf("didn't expect '%s' at square %s", string(piece), chess.Square(i).String()))
+			}
+			tree := BuildHuffmanTree(freqs2)
+			dict := tree.BuildDictionary()
+			bits = append(bits, dict[piece].Bits...)
+			idx++
+
+			freqs = entropy.UpdateFrequencies(piece, n-idx, freqs)
+		}
+	}
+	return bits
+}
+
+func DecodeAdaptive(readBit func() bool, n int, occupancy []bool, frequencies map[rune]int, color []bool, state *chess.State) []rune {
+	pieces := make([]rune, 0, n)
+	freqs := entropy.PrepareFrequencies(n, frequencies)
+	idx := 0
+	for square, occupied := range occupancy {
+		if occupied {
+			freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(square), n, occupancy, color, state, pieces)
+			tree := BuildHuffmanTree(freqs2)
+
+			node := tree
+			for !node.IsLeaf() {
+				bit := readBit()
+				node = node.Children[bit]
+			}
+			piece := node.Value
+			pieces = append(pieces, piece)
+
+			idx++
+
+			freqs = entropy.UpdateFrequencies(piece, n-idx, freqs)
+		}
+	}
+	return pieces
 }

@@ -1,11 +1,8 @@
 package coders
 
 import (
-	"fmt"
-
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
-	"example.com/go-chess/internal/entropy"
 	"example.com/go-chess/internal/huffman"
 	"example.com/go-chess/internal/tools"
 )
@@ -49,25 +46,9 @@ func (c *HuffmanAdaptiveCoder) Encode(state *chess.State) *bitfield.BitField {
 	bits.WriteInt(occupancy, 64)
 	bits.WriteInt(uint64(color), len(pieces))
 	// Huffman coding.
-	n := len(pieces)
-	freqs := entropy.PrepareFrequencies(n, c.frequencies)
-	colorSlice := bitfield.IntToBoolSlice(uint64(color), len(pieces))
 	fullOccupancy := bitfield.IntToBoolSlice(occupancy, 64)
-	runes := piecesToRunes(pieces)
-	idx := 0
-	for square := range state.Board.OccupiedSquares() {
-		freqs2 := entropy.AdjustFrequencies(freqs, square, n, fullOccupancy, colorSlice, state, runes[:idx])
-		r := runes[idx]
-		if freqs2[r] == 0 {
-			panic(fmt.Sprintf("didn't expect %q at square %s", r, square.String()))
-		}
-		tree := huffman.BuildHuffmanTree(freqs2)
-		dict := tree.BuildDictionary()
-		bits.WriteBoolSlice(dict[r].Bits)
-		idx++
-
-		freqs = entropy.UpdateFrequencies(r, n-idx, freqs)
-	}
+	colorSlice := bitfield.IntToBoolSlice(uint64(color), len(pieces))
+	bits.WriteBoolSlice(huffman.EncodeAdaptive(piecesToRunes(pieces), fullOccupancy, c.frequencies, colorSlice, state))
 
 	return bits
 }
@@ -89,27 +70,7 @@ func (c *HuffmanAdaptiveCoder) Decode(bits *bitfield.BitField) *chess.State {
 	colors := bits.ReadBoolSlice(pieceCount)
 
 	// Piece placement: pieces.
-	pieces := make([]rune, 0, pieceCount)
-	freqs := entropy.PrepareFrequencies(pieceCount, c.frequencies)
-	idx := 0
-	for square, occupied := range occupancy {
-		if occupied {
-			freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(square), pieceCount, occupancy, colors, state, pieces)
-			tree := huffman.BuildHuffmanTree(freqs2)
-
-			node := tree
-			for !node.IsLeaf() {
-				bit := bits.ReadBool()
-				node = node.Children[bit]
-			}
-			piece := node.Value
-			pieces = append(pieces, piece)
-
-			idx++
-
-			freqs = entropy.UpdateFrequencies(piece, pieceCount-idx, freqs)
-		}
-	}
+	pieces := huffman.DecodeAdaptive(func() bool { return bits.ReadBool() }, pieceCount, occupancy, c.frequencies, colors, state)
 
 	// Piece placement.
 	placePieces(&state.Board, occupancy, pieces, colors)

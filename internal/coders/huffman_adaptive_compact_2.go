@@ -1,11 +1,8 @@
 package coders
 
 import (
-	"fmt"
-
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
-	"example.com/go-chess/internal/entropy"
 	"example.com/go-chess/internal/huffman"
 	"example.com/go-chess/internal/tools"
 	"example.com/go-chess/internal/tools/square_skipper"
@@ -94,26 +91,8 @@ func (c *HuffmanAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.BitF
 	bits.WriteBoolSlice(colorOut)
 
 	// Huffman coding.
-	n := len(pieces)
-	freqs := entropy.PrepareFrequencies(n, c.frequencies)
 	colorSlice := bitfield.IntToBoolSlice(uint64(fullColor), len(pieces))
-	idx := 0
-	runes := piecesToRunes(pieces)
-	for i := range 64 {
-		if fullOccupancy[i] {
-			freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(i), n, fullOccupancy, colorSlice, state, runes[:idx])
-			piece := runes[idx]
-			if freqs2[piece] == 0 {
-				panic(fmt.Sprintf("didn't expect '%s' at square %s", string(piece), chess.Square(i).String()))
-			}
-			tree := huffman.BuildHuffmanTree(freqs2)
-			dict := tree.BuildDictionary()
-			bits.WriteBoolSlice(dict[piece].Bits)
-			idx++
-
-			freqs = entropy.UpdateFrequencies(piece, n-idx, freqs)
-		}
-	}
+	bits.WriteBoolSlice(huffman.EncodeAdaptive(piecesToRunes(pieces), fullOccupancy, c.frequencies, colorSlice, state))
 
 	return bits
 }
@@ -187,27 +166,7 @@ func (c *HuffmanAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess.St
 	}
 
 	// Piece placement: pieces.
-	pieces := make([]rune, 0, pieceCount)
-	freqs := entropy.PrepareFrequencies(pieceCount, c.frequencies)
-	idx := 0
-	for square, occupied := range occupancy {
-		if occupied {
-			freqs2 := entropy.AdjustFrequencies(freqs, chess.Square(square), pieceCount, occupancy, colors, state, pieces)
-			tree := huffman.BuildHuffmanTree(freqs2)
-
-			node := tree
-			for !node.IsLeaf() {
-				bit := bits.ReadBool()
-				node = node.Children[bit]
-			}
-			piece := node.Value
-			pieces = append(pieces, piece)
-
-			idx++
-
-			freqs = entropy.UpdateFrequencies(piece, pieceCount-idx, freqs)
-		}
-	}
+	pieces := huffman.DecodeAdaptive(func() bool { return bits.ReadBool() }, pieceCount, occupancy, c.frequencies, colors, state)
 
 	// Piece placement.
 	placePieces(&state.Board, occupancy, pieces, colors)
