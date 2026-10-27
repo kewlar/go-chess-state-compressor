@@ -7,6 +7,8 @@ import (
 	"example.com/go-chess/internal/tools"
 )
 
+var startingPosition = chess.NewStartingState().Board
+
 // TryEncodeEarlyPosition tries to encode one of the 421 positions possible in first 3 plies in a single magic number. Returns the bitfield and bool true if succeeded, nil and false otherwise.
 func TryEncodeEarlyPosition(state *chess.State) (*bitfield.BitField, bool) {
 	return nil, false
@@ -54,10 +56,9 @@ func TryEncodeEarlyPosition(state *chess.State) (*bitfield.BitField, bool) {
 
 // startingPositionDiff returns the difference between the starting position and the given position.
 func startingPositionDiff(board chess.Board) map[chess.Square]chess.Piece {
-	startingPosition, _ := chess.ParseFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
 	diff := map[chess.Square]chess.Piece{}
 	for i := range 64 {
-		if board[i] != startingPosition.Board[i] {
+		if board[i] != startingPosition[i] {
 			diff[chess.Square(i)] = board[i]
 		}
 	}
