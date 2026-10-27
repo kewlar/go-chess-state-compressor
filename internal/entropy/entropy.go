@@ -10,6 +10,44 @@ import (
 func AdjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces int, occupancy, color []bool, state *chess.State, placedPieces []rune) map[rune]int {
 	freqs := maps.Clone(frequencies)
 
+	// If it's en-passant Pawn square, the only piece possible is a Pawn.
+	if state.EnPassant.IsValid() {
+		pawnSquare := state.EnPassant ^ 0b1000
+		if square == pawnSquare {
+			freqs['r'] = 0
+			freqs['n'] = 0
+			freqs['b'] = 0
+			freqs['p'] = 1
+			freqs['k'] = 0
+			freqs['q'] = 0
+			return freqs
+		}
+	}
+
+	// If castling is available, the only piece on the Rook square can be a Rook.
+	whiteCanCastle := state.Castling['K'] || state.Castling['Q']
+	blackCanCastle := state.Castling['k'] || state.Castling['q']
+	if (square == chess.A1 && state.Castling['Q'] || square == chess.H1 && state.Castling['K']) ||
+		(square == chess.A8 && state.Castling['q'] || square == chess.H8 && state.Castling['k']) {
+		freqs['r'] = 1
+		freqs['n'] = 0
+		freqs['b'] = 0
+		freqs['p'] = 0
+		freqs['k'] = 0
+		freqs['q'] = 0
+		return freqs
+	}
+	if square == chess.E1 && whiteCanCastle || square == chess.E8 && blackCanCastle {
+		// If castling is available, the only piece on the King square can be a King.
+		freqs['r'] = 0
+		freqs['n'] = 0
+		freqs['b'] = 0
+		freqs['p'] = 0
+		freqs['k'] = 1
+		freqs['q'] = 0
+		return freqs
+	}
+
 	// Pawns cannot be on home ranks.
 	if square.IsOnHomeRank() {
 		freqs['p'] = 0
@@ -80,39 +118,6 @@ func AdjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 		freqs['k'] = 0
 	}
 
-	// If it's en-passant Pawn square, the only piece possible is a Pawn.
-	if state.EnPassant.IsValid() {
-		pawnSquare := state.EnPassant ^ 0b1000
-		if square == pawnSquare {
-			freqs['r'] = 0
-			freqs['n'] = 0
-			freqs['b'] = 0
-			freqs['p'] = 1
-			freqs['k'] = 0
-			freqs['q'] = 0
-		}
-	}
-
-	// If castling is available, the only piece on the Rook square can be a Rook.
-	whiteCanCastle := state.Castling['K'] || state.Castling['Q']
-	blackCanCastle := state.Castling['k'] || state.Castling['q']
-	if (square == chess.A1 && state.Castling['Q'] || square == chess.H1 && state.Castling['K']) ||
-		(square == chess.A8 && state.Castling['q'] || square == chess.H8 && state.Castling['k']) {
-		freqs['r'] = 1
-		freqs['n'] = 0
-		freqs['b'] = 0
-		freqs['p'] = 0
-		freqs['k'] = 0
-		freqs['q'] = 0
-	} else if square == chess.E1 && whiteCanCastle || square == chess.E8 && blackCanCastle {
-		// If castling is available, the only piece on the King square can be a King.
-		freqs['r'] = 0
-		freqs['n'] = 0
-		freqs['b'] = 0
-		freqs['p'] = 0
-		freqs['k'] = 1
-		freqs['q'] = 0
-	}
 	// If a side can castle, a King cannot be anywhere else than on the King's square.
 	if pieceColor == chess.White && whiteCanCastle && square != chess.E1 || pieceColor == chess.Black && blackCanCastle && square != chess.E8 {
 		freqs['k'] = 0
@@ -120,7 +125,7 @@ func AdjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 
 	// Side not to move cannot have their King in check.
 	sideNotToMove := state.SideToMove.Other()
-	if pieceColor == sideNotToMove && !kings[pieceColor].IsValid() {
+	if freqs['k'] > 0 && pieceColor == sideNotToMove && !kings[pieceColor].IsValid() {
 		// Is anything by SideToMove on the board attacking our target square?
 		isAttacking := false
 		board := buildBoard(occupancy, color, placedPieces)
@@ -138,6 +143,9 @@ func AdjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 		// Side to move cannot be checking other side's King.
 		board := buildBoard(occupancy, color, placedPieces)
 		for _, pieceType := range []rune{'r', 'b', 'n', 'q', 'p'} {
+			if freqs[pieceType] == 0 {
+				continue
+			}
 			piece := chess.NewPiece(pieceType, pieceColor)
 			board2 := boardWith(board, piece, square)
 			if chess.Attacks(board2, square, kings[sideNotToMove]) {
