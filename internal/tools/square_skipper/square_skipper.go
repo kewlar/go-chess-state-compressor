@@ -52,7 +52,7 @@ func (s *SquareSkipper) SkipEmpty(occupancy []bool) {
 	}
 }
 
-func (s *SquareSkipper) SkipOriginalRanks(mode Mode) {
+func (s *SquareSkipper) SkipOriginalRanks() {
 	// White
 	for _, rank := range []int{0, 1} {
 		for file := range 8 {
@@ -64,7 +64,7 @@ func (s *SquareSkipper) SkipOriginalRanks(mode Mode) {
 	for _, rank := range []int{6, 7} {
 		for file := range 8 {
 			square := chess.NewSquareFromRankAndFile(rank, file)
-			(*s)[square] = mode == Occupancy
+			(*s)[square] = false
 		}
 	}
 }
