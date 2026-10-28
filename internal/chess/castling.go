@@ -15,6 +15,15 @@ func NewCastling(availability []bool) Castling {
 	return castling
 }
 
+// NewCastlingFromString returns castling populated with availability given as a FEN-type castling string.
+func NewCastlingFromString(availability string) Castling {
+	castling := Castling{}
+	for _, option := range castlingOptions {
+		castling[option] = strings.ContainsRune(availability, option)
+	}
+	return castling
+}
+
 // BoolSlice returns the boolean values for castling availability for the respective castling options.
 func (c Castling) BoolSlice() []bool {
 	s := []bool{}

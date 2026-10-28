@@ -37,3 +37,43 @@ func TestCastling(t *testing.T) {
 		})
 	}
 }
+
+func TestCastlingFromString(t *testing.T) {
+	tests := []string{
+		"",
+		"-",
+		"q",
+		"k",
+		"kq",
+		"Q",
+		"Qq",
+		"Qk",
+		"Qkq",
+		"K",
+		"Kq",
+		"Kk",
+		"Kkq",
+		"KQ",
+		"KQq",
+		"KQk",
+		"KQkq",
+	}
+
+	for _, tt := range tests {
+		t.Run(tt, func(t *testing.T) {
+			availability := tt
+			if availability == "-" {
+				availability = ""
+			}
+			expected := tt
+			if expected == "" {
+				expected = "-"
+			}
+			castling := chess.NewCastlingFromString(availability)
+			actual := castling.String()
+			if actual != expected {
+				t.Errorf("NewCastlingFromString(%q).String() = %q; expected %q", availability, actual, expected)
+			}
+		})
+	}
+}

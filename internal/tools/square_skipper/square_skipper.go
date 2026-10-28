@@ -1,25 +1,25 @@
 package square_skipper
 
 import (
-	"maps"
-
 	"example.com/go-chess/internal/chess"
 )
 
 type (
-	SquareSkipper map[chess.Square]bool
-	Mode          int
+	SquareSkipper map[chess.Square]bool // SquareSkipper allows shrinking a 64-square bitboard by removing certain cells whose value is known from other information, and re-inserting them later.
+	Mode          int                   // Mode identifies the mode SquareSkipper can be configured to run in - Occupancy or Color.
 )
 
 const (
-	Occupancy Mode = iota
-	Color
+	Occupancy Mode = iota // In Occupancy mode, true values of the SquareSkipper map identify cells that are for certain occupied, and false - cells that are for certain empty.
+	Color                 // In Color mode, true values of the SquareSkipper map identify cells that are for certain White (contain White pieces), and false - cells that are Black or empty.
 )
 
+// NewSquareSkipper returns a new SquareSkipper.
 func NewSquareSkipper() SquareSkipper {
 	return SquareSkipper{}
 }
 
+// SkipCastling configures the SquareSkipper to discard squares of castling-available pieces for given castling availability when deflating a bitboard.
 func (s SquareSkipper) SkipCastling(castling chess.Castling, mode Mode) {
 	for option, available := range castling {
 		if available {
@@ -28,6 +28,7 @@ func (s SquareSkipper) SkipCastling(castling chess.Castling, mode Mode) {
 	}
 }
 
+// SkipCastlingOption configures the SquareSkipper to discard squares of castling-available pieces for given castling option when deflating a bitboard.
 func (s SquareSkipper) SkipCastlingOption(castling rune, mode Mode) {
 	isOccupancy := mode == Occupancy
 	switch castling {
@@ -46,6 +47,7 @@ func (s SquareSkipper) SkipCastlingOption(castling rune, mode Mode) {
 	}
 }
 
+// SkipEmpty configures the SquareSkipper to discard the empty squares when deflating. Only meant to be used on a 64-square color bitboard.
 func (s SquareSkipper) SkipEmpty(occupancy []bool) {
 	for square, isOccupied := range occupancy {
 		if !isOccupied {
@@ -54,6 +56,7 @@ func (s SquareSkipper) SkipEmpty(occupancy []bool) {
 	}
 }
 
+// SkipOriginalRanks configures the SquareSkipper to discard the occupied squares that are on original ranks when deflating. Only meant to be used on a 64-square color bitboard.
 func (s SquareSkipper) SkipOriginalRanks(occupancy []bool) {
 	// White
 	for _, rank := range []int{0, 1} {
@@ -75,6 +78,7 @@ func (s SquareSkipper) SkipOriginalRanks(occupancy []bool) {
 	}
 }
 
+// SkipEnPassant configures the SquareSkipper to discard the squares with en passant pawn, and the two empty squares behind it.
 func (s SquareSkipper) SkipEnPassant(enPassant chess.Square, mode Mode) {
 	enPassantPawn := chess.Square(int(enPassant) ^ 0b1000)
 	enPassantHome := chess.Square(int(enPassant) ^ 0b11000)
@@ -83,14 +87,12 @@ func (s SquareSkipper) SkipEnPassant(enPassant chess.Square, mode Mode) {
 	s[enPassantHome] = false
 }
 
+// Length returns the number of cells the SquareSkipper is configured to skip.
 func (s SquareSkipper) Length() int {
 	return len(s)
 }
 
-func (s SquareSkipper) All() map[chess.Square]bool {
-	return maps.Clone(map[chess.Square]bool(s))
-}
-
+// Deflate returns a copy of l slice with configured squares removed.
 func (s SquareSkipper) Deflate(l []bool) []bool {
 	out := []bool{}
 	for i, x := range l {
@@ -101,6 +103,7 @@ func (s SquareSkipper) Deflate(l []bool) []bool {
 	return out
 }
 
+// Inflate returns a copy of l square with configured squares reinserted.
 func (s SquareSkipper) Inflate(l []bool) []bool {
 	out := []bool{}
 	idx := 0
