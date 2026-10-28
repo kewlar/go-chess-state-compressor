@@ -1,4 +1,4 @@
-package square_skipper
+package squareskipper
 
 import (
 	"example.com/go-chess/internal/chess"

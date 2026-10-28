@@ -44,13 +44,13 @@ func (b *BitField) String() string {
 	return strings.Join(parts, " ")
 }
 
-// Byte returns current byte index as indicated by length.
-func (b *BitField) Byte() int {
+// writeByteIndex returns current byte index as indicated by length.
+func (b *BitField) writeByteIndex() int {
 	return b.Length >> 3
 }
 
-// Bit returns current bit index in current byte as indicated by length.
-func (b *BitField) Bit() int {
+// writeBitOffset returns current bit index in current byte as indicated by length.
+func (b *BitField) writeBitOffset() int {
 	return b.Length & 7
 }
 
@@ -59,7 +59,7 @@ func (b *BitField) WriteInt(i uint64, n int) {
 	b.pad(n)
 	for range n {
 		value := byte(i & 1)
-		b.Data[b.Byte()] |= value << b.Bit()
+		b.Data[b.writeByteIndex()] |= value << b.writeBitOffset()
 		b.Length++
 		i >>= 1
 	}
@@ -72,11 +72,11 @@ func (b *BitField) WriteBool(x bool) {
 	if x {
 		value = 1
 	}
-	b.Data[b.Byte()] |= value << b.Bit()
+	b.Data[b.writeByteIndex()] |= value << b.writeBitOffset()
 	b.Length++
 }
 
-// WriteBoolSlice writes a sequence of bits into Bitfield.
+// WriteBoolSlice writes a sequence of bits into BitField.
 func (b *BitField) WriteBoolSlice(x []bool) {
 	for _, y := range x {
 		b.WriteBool(y)
@@ -88,9 +88,9 @@ func (b *BitField) ReadBool() bool {
 	if b.ReadHead+1 > b.Length {
 		panic("reading out of bounds")
 	}
-	byte, bit := b.ReadHead>>3, b.ReadHead&7
+	byteIdx, bitOffset := b.ReadHead>>3, b.ReadHead&7
 	b.ReadHead++
-	return b.Data[byte]&(1<<bit) != 0
+	return b.Data[byteIdx]&(1<<bitOffset) != 0
 }
 
 // ReadBoolSlice reads and returns a sequence of n bits of the BitField. It adjusts the BitField read head. If it reads out of bounds, it panics.
@@ -100,8 +100,8 @@ func (b *BitField) ReadBoolSlice(n int) []bool {
 	}
 	out := make([]bool, 0, n)
 	for range n {
-		byte, bit := b.ReadHead>>3, b.ReadHead&7
-		out = append(out, b.Data[byte]&(1<<bit) != 0)
+		byteIdx, bitOffset := b.ReadHead>>3, b.ReadHead&7
+		out = append(out, b.Data[byteIdx]&(1<<bitOffset) != 0)
 		b.ReadHead++
 	}
 	return out
@@ -114,8 +114,8 @@ func (b *BitField) ReadInt(n int) uint64 {
 	}
 	out := uint64(0)
 	for i := range n {
-		byte, bit := b.ReadHead>>3, b.ReadHead&7
-		if b.Data[byte]&(1<<bit) != 0 {
+		byteIdx, bitOffset := b.ReadHead>>3, b.ReadHead&7
+		if b.Data[byteIdx]&(1<<bitOffset) != 0 {
 			out |= 1 << i
 		}
 		b.ReadHead++

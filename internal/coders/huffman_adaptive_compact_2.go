@@ -5,7 +5,7 @@ import (
 	"example.com/go-chess/internal/chess"
 	"example.com/go-chess/internal/huffman"
 	"example.com/go-chess/internal/tools"
-	"example.com/go-chess/internal/tools/square_skipper"
+	"example.com/go-chess/internal/tools/squareskipper"
 )
 
 type HuffmanAdaptiveCompact2Coder struct {
@@ -54,7 +54,7 @@ func (c *HuffmanAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.BitF
 	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
 	bits.WriteInt(uint64(moveNum), 21)
 
-	skipper := square_skipper.NewSquareSkipper()
+	skipper := squareskipper.NewSquareSkipper()
 
 	// Side to move.
 	bits.WriteBool(bool(state.SideToMove))
@@ -63,14 +63,14 @@ func (c *HuffmanAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.BitF
 	bits.WriteBool(state.Castling.IsAvailable())
 	if state.Castling.IsAvailable() {
 		bits.WriteBoolSlice(state.Castling.BoolSlice())
-		skipper.SkipCastling(state.Castling, square_skipper.Occupancy)
+		skipper.SkipCastling(state.Castling, squareskipper.Occupancy)
 	}
 
 	// En passant square.
 	if state.EnPassant.IsValid() {
 		bits.WriteBool(true)
 		bits.WriteInt(uint64(state.EnPassant), 3) // Only the lowest 3 bits -- the file -- are necessary.
-		skipper.SkipEnPassant(state.EnPassant, square_skipper.Occupancy)
+		skipper.SkipEnPassant(state.EnPassant, squareskipper.Occupancy)
 	} else if state.Halfmove == 0 { // Only write "no en passant" flag if en passant is at all possible. In this case, the last move might have been a Pawn move.
 		bits.WriteBool(false)
 	}
@@ -111,13 +111,13 @@ func (c *HuffmanAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess.St
 	// Side to move.
 	state.SideToMove = chess.Color(bits.ReadBool())
 
-	skipper := square_skipper.NewSquareSkipper()
+	skipper := squareskipper.NewSquareSkipper()
 
 	// Castling availability.
 	hasCastling := bits.ReadBool()
 	if hasCastling {
 		state.Castling = chess.NewCastling(bits.ReadBoolSlice(4))
-		skipper.SkipCastling(state.Castling, square_skipper.Occupancy)
+		skipper.SkipCastling(state.Castling, squareskipper.Occupancy)
 	}
 	// En passant square.
 	hasEnPassant := false
@@ -130,7 +130,7 @@ func (c *HuffmanAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess.St
 				rank = 5
 			}
 			state.EnPassant = chess.NewSquareFromRankAndFile(rank, enPassantFile)
-			skipper.SkipEnPassant(state.EnPassant, square_skipper.Occupancy)
+			skipper.SkipEnPassant(state.EnPassant, squareskipper.Occupancy)
 		}
 	}
 
@@ -150,9 +150,9 @@ func (c *HuffmanAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess.St
 	if originalColorRanks {
 		skipper.SkipOriginalRanks(occupancy)
 	}
-	skipper.SkipCastling(state.Castling, square_skipper.Color)
+	skipper.SkipCastling(state.Castling, squareskipper.Color)
 	if state.EnPassant.IsValid() {
-		skipper.SkipEnPassant(state.EnPassant, square_skipper.Color)
+		skipper.SkipEnPassant(state.EnPassant, squareskipper.Color)
 	}
 
 	// Piece placement: colors.

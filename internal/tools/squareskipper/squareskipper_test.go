@@ -1,4 +1,4 @@
-package square_skipper_test
+package squareskipper_test
 
 import (
 	"slices"
@@ -6,7 +6,7 @@ import (
 
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
-	"example.com/go-chess/internal/tools/square_skipper"
+	"example.com/go-chess/internal/tools/squareskipper"
 )
 
 func TestSkipCastling(t *testing.T) {
@@ -14,7 +14,7 @@ func TestSkipCastling(t *testing.T) {
 		name           string
 		initial        uint64
 		castling       string
-		mode           square_skipper.Mode
+		mode           squareskipper.Mode
 		expected       uint64
 		expectedLength int
 	}{
@@ -22,7 +22,7 @@ func TestSkipCastling(t *testing.T) {
 			name:           "No castling (occupancy)",
 			initial:        0b11111111_11111111_00000000_00000000_00000000_00000000_11111111_11111111,
 			castling:       "",
-			mode:           square_skipper.Occupancy,
+			mode:           squareskipper.Occupancy,
 			expected:       0b11111111_11111111_00000000_00000000_00000000_00000000_11111111_11111111,
 			expectedLength: 64,
 		},
@@ -30,7 +30,7 @@ func TestSkipCastling(t *testing.T) {
 			name:           "Full castling (occupancy)",
 			initial:        0b11011011_11111111_00000000_00000000_00000000_00000000_11111111_10111101,
 			castling:       "KQkq",
-			mode:           square_skipper.Occupancy,
+			mode:           squareskipper.Occupancy,
 			expected:       0b10101_11111111_00000000_00000000_00000000_00000000_11111111_01110,
 			expectedLength: 58,
 		},
@@ -38,7 +38,7 @@ func TestSkipCastling(t *testing.T) {
 			name:           "Partial castling (occupancy)",
 			initial:        0b11011011_11111111_00000000_00000000_00000000_00000000_11111111_10111101,
 			castling:       "Kq",
-			mode:           square_skipper.Occupancy,
+			mode:           squareskipper.Occupancy,
 			expected:       0b101011_11111111_00000000_00000000_00000000_00000000_11111111_101110,
 			expectedLength: 60,
 		},
@@ -46,7 +46,7 @@ func TestSkipCastling(t *testing.T) {
 			name:           "White castling kingside (occupancy)",
 			initial:        0b11011011_11111111_00000000_00000000_00000000_00000000_11111111_10111101,
 			castling:       "K",
-			mode:           square_skipper.Occupancy,
+			mode:           squareskipper.Occupancy,
 			expected:       0b101011_11111111_00000000_00000000_00000000_00000000_11111111_10111101,
 			expectedLength: 62,
 		},
@@ -54,7 +54,7 @@ func TestSkipCastling(t *testing.T) {
 			name:           "No castling (color)",
 			initial:        0b11111111_11111111_00000000_00000000_00000000_00000000_00000000_00000000,
 			castling:       "",
-			mode:           square_skipper.Color,
+			mode:           squareskipper.Color,
 			expected:       0b11111111_11111111_00000000_00000000_00000000_00000000_00000000_00000000,
 			expectedLength: 64,
 		},
@@ -62,7 +62,7 @@ func TestSkipCastling(t *testing.T) {
 			name:           "Full castling (color)",
 			initial:        0b10111101_11111111_00000000_00000000_00000000_00000000_00000000_01000010,
 			castling:       "KQkq",
-			mode:           square_skipper.Color,
+			mode:           squareskipper.Color,
 			expected:       0b01110_11111111_00000000_00000000_00000000_00000000_00000000_10001,
 			expectedLength: 58,
 		},
@@ -70,7 +70,7 @@ func TestSkipCastling(t *testing.T) {
 			name:           "Partial castling (color)",
 			initial:        0b10111101_11111111_00000000_00000000_00000000_00000000_00000000_01000010,
 			castling:       "Kq",
-			mode:           square_skipper.Color,
+			mode:           squareskipper.Color,
 			expected:       0b011101_11111111_00000000_00000000_00000000_00000000_00000000_010001,
 			expectedLength: 60,
 		},
@@ -82,7 +82,7 @@ func TestSkipCastling(t *testing.T) {
 				castling := chess.NewCastlingFromString(tt.castling)
 				initialBoard := bitfield.IntToBoolSlice(tt.initial, 64)
 				expectedBoard := bitfield.IntToBoolSlice(tt.expected, tt.expectedLength)
-				skipper := square_skipper.NewSquareSkipper()
+				skipper := squareskipper.NewSquareSkipper()
 				skipper.SkipCastling(castling, tt.mode)
 				result := skipper.Deflate(initialBoard)
 				if !slices.Equal(result, expectedBoard) {
@@ -93,7 +93,7 @@ func TestSkipCastling(t *testing.T) {
 				castling := chess.NewCastlingFromString(tt.castling)
 				initialBoard := bitfield.IntToBoolSlice(tt.expected, tt.expectedLength)
 				expectedBoard := bitfield.IntToBoolSlice(tt.initial, 64)
-				skipper := square_skipper.NewSquareSkipper()
+				skipper := squareskipper.NewSquareSkipper()
 				skipper.SkipCastling(castling, tt.mode)
 				result := skipper.Inflate(initialBoard)
 				if !slices.Equal(result, expectedBoard) {
@@ -109,7 +109,7 @@ func TestSkipEnPassant(t *testing.T) {
 		name           string
 		initial        uint64
 		enPassant      chess.Square
-		mode           square_skipper.Mode
+		mode           squareskipper.Mode
 		expected       uint64
 		expectedLength int
 	}{
@@ -117,7 +117,7 @@ func TestSkipEnPassant(t *testing.T) {
 			name:           "e4 (occupancy)",
 			initial:        0b11111111_11101111_00000000_00010000_00000000_00000000_11111111_11111111,
 			enPassant:      chess.E3,
-			mode:           square_skipper.Occupancy,
+			mode:           squareskipper.Occupancy,
 			expected:       0b11111111_1111111_0000000_0000000_00000000_00000000_11111111_11111111,
 			expectedLength: 61,
 		},
@@ -125,7 +125,7 @@ func TestSkipEnPassant(t *testing.T) {
 			name:           "e5 (occupancy)",
 			initial:        0b11111111_11111111_00000000_00000000_00010000_00000000_11101111_11111111,
 			enPassant:      chess.E6,
-			mode:           square_skipper.Occupancy,
+			mode:           squareskipper.Occupancy,
 			expected:       0b11111111_11111111_00000000_00000000_0000000_0000000_1111111_11111111,
 			expectedLength: 61,
 		},
@@ -133,7 +133,7 @@ func TestSkipEnPassant(t *testing.T) {
 			name:           "e4 (color)",
 			initial:        0b11111111_11101111_00000000_00010000_00000000_00000000_00000000_00000000,
 			enPassant:      chess.E3,
-			mode:           square_skipper.Color,
+			mode:           squareskipper.Color,
 			expected:       0b11111111_1111111_0000000_0000000_00000000_00000000_00000000_00000000,
 			expectedLength: 61,
 		},
@@ -141,7 +141,7 @@ func TestSkipEnPassant(t *testing.T) {
 			name:           "e5 (color)",
 			initial:        0b11111111_11111111_00000000_00000000_00000000_00000000_00000000_00000000,
 			enPassant:      chess.E6,
-			mode:           square_skipper.Color,
+			mode:           squareskipper.Color,
 			expected:       0b11111111_11111111_00000000_00000000_0000000_0000000_0000000_00000000,
 			expectedLength: 61,
 		},
@@ -152,7 +152,7 @@ func TestSkipEnPassant(t *testing.T) {
 			t.Run("Deflate", func(t *testing.T) {
 				initialBoard := bitfield.IntToBoolSlice(tt.initial, 64)
 				expectedBoard := bitfield.IntToBoolSlice(tt.expected, tt.expectedLength)
-				skipper := square_skipper.NewSquareSkipper()
+				skipper := squareskipper.NewSquareSkipper()
 				skipper.SkipEnPassant(tt.enPassant, tt.mode)
 				result := skipper.Deflate(initialBoard)
 				if !slices.Equal(result, expectedBoard) {
@@ -162,7 +162,7 @@ func TestSkipEnPassant(t *testing.T) {
 			t.Run("Inflate", func(t *testing.T) {
 				initialBoard := bitfield.IntToBoolSlice(tt.expected, tt.expectedLength)
 				expectedBoard := bitfield.IntToBoolSlice(tt.initial, 64)
-				skipper := square_skipper.NewSquareSkipper()
+				skipper := squareskipper.NewSquareSkipper()
 				skipper.SkipEnPassant(tt.enPassant, tt.mode)
 				result := skipper.Inflate(initialBoard)
 				if !slices.Equal(result, expectedBoard) {
@@ -203,7 +203,7 @@ func TestSkipOriginalRanks(t *testing.T) {
 				color := bitfield.IntToBoolSlice(tt.color, 64)
 				occupancy := bitfield.IntToBoolSlice(tt.occupancy, 64)
 				expectedColor := bitfield.IntToBoolSlice(tt.expected, tt.expectedLength)
-				skipper := square_skipper.NewSquareSkipper()
+				skipper := squareskipper.NewSquareSkipper()
 				skipper.SkipOriginalRanks(occupancy)
 				result := skipper.Deflate(color)
 				if !slices.Equal(result, expectedColor) {
@@ -214,7 +214,7 @@ func TestSkipOriginalRanks(t *testing.T) {
 				color := bitfield.IntToBoolSlice(tt.expected, tt.expectedLength)
 				occupancy := bitfield.IntToBoolSlice(tt.occupancy, 64)
 				expectedColor := bitfield.IntToBoolSlice(tt.color, 64)
-				skipper := square_skipper.NewSquareSkipper()
+				skipper := squareskipper.NewSquareSkipper()
 				skipper.SkipOriginalRanks(occupancy)
 				result := skipper.Inflate(color)
 				if !slices.Equal(result, expectedColor) {
@@ -255,7 +255,7 @@ func TestSkipEmpty(t *testing.T) {
 				occupancy := bitfield.IntToBoolSlice(tt.occupancy, 64)
 				color := bitfield.IntToBoolSlice(tt.color, 64)
 				expectedColor := bitfield.IntToBoolSlice(tt.expected, tt.expectedLength)
-				skipper := square_skipper.NewSquareSkipper()
+				skipper := squareskipper.NewSquareSkipper()
 				skipper.SkipEmpty(occupancy)
 				result := skipper.Deflate(color)
 				if !slices.Equal(result, expectedColor) {
@@ -266,7 +266,7 @@ func TestSkipEmpty(t *testing.T) {
 				occupancy := bitfield.IntToBoolSlice(tt.occupancy, 64)
 				color := bitfield.IntToBoolSlice(tt.expected, tt.expectedLength)
 				expectedColor := bitfield.IntToBoolSlice(tt.color, 64)
-				skipper := square_skipper.NewSquareSkipper()
+				skipper := squareskipper.NewSquareSkipper()
 				skipper.SkipEmpty(occupancy)
 				result := skipper.Inflate(color)
 				if !slices.Equal(result, expectedColor) {
