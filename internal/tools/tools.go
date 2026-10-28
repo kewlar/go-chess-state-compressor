@@ -44,32 +44,6 @@ func EliasGamma(x int) []bool {
 	return out
 }
 
-// WithoutSquares removes squares-indexed elements from slice s and returns the result.
-func WithoutSquares(s []bool, squares []int) []bool {
-	out := []bool{}
-	for i, x := range s {
-		if !slices.Contains(squares, i) {
-			out = append(out, x)
-		}
-	}
-	return out
-}
-
-// WithSquares fills in 64-square board s with missing information given in squares.
-func WithSquares(s []bool, squares map[int]bool) []bool {
-	out := []bool{}
-	idx := 0
-	for i := range 64 {
-		if value, ok := squares[i]; ok {
-			out = append(out, value)
-		} else {
-			out = append(out, s[idx])
-			idx++
-		}
-	}
-	return out
-}
-
 // CountTrue returns a number of members in bool slice s that are true.
 func CountTrue(s []bool) int {
 	count := 0
