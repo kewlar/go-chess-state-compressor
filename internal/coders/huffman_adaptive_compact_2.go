@@ -38,7 +38,7 @@ func (c *HuffmanAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.BitF
 
 	bits := &bitfield.BitField{}
 
-	// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
+	// Up to possibility for Black to make their 3rd move, all pieces on the starting ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
 	maybeOriginalColorRanks := maybeOriginalColorRanks(state)
 	originalColorRanks := maybeOriginalColorRanks && reallyOriginalColorRanks(state.Board)
 
@@ -141,7 +141,7 @@ func (c *HuffmanAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess.St
 
 	// Restore full-board piece color map. True = White, False = Black or empty.
 	skipper.SkipEmpty(occupancy)
-	// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
+	// Up to possibility for Black to make their 3rd move, all pieces on the starting ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
 	maybeOriginalColorRanks := maybeOriginalColorRanks(state)
 	originalColorRanks := false
 	if maybeOriginalColorRanks {

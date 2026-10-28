@@ -48,7 +48,7 @@ func AdjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces 
 		return freqs
 	}
 
-	// Pawns cannot be on home ranks.
+	// Pawns cannot be on back ranks.
 	if square.IsOnBackRank() {
 		freqs['p'] = 0
 	}

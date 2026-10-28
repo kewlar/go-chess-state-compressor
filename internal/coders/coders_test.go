@@ -54,7 +54,7 @@ func testPositions() []testPosition {
 			fen:  "3qQq1q/1rkb1Q1q/Q6q/7q/Q7/Q5K1/Q1q3B1/QqQq1QR1 b - - 0 80",
 		},
 		{
-			name: "18 Queens, no pieces on home ranks",
+			name: "18 Queens, no pieces on back ranks",
 			fen:  "8/1rkbqQ1q/Q3Qq1q/1qq4q/Q7/Q4QK1/QQqQq1BR/8 b - - 12 86",
 		},
 		{
@@ -106,7 +106,7 @@ func testPositions() []testPosition {
 			fen:  "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",
 		},
 		{
-			name: "f4 (en passant not in first three plies)",
+			name: "f4 (en passant not in first two plies)",
 			fen:  "rnbqkbnr/pp3ppp/8/2ppp3/2PPPP2/8/PP4PP/RNBQKBNR b KQkq f3 0 4",
 		},
 		{
@@ -118,7 +118,7 @@ func testPositions() []testPosition {
 			fen:  "rnbqk1nr/pppp1ppp/8/4p2Q/4P3/b7/PPPP1PPP/RNB1KBNR w KQkq - 2 3",
 		},
 		{
-			name: "First ply where a piece on home ranks can be of an opposing color",
+			name: "First ply where a piece on a home rank can be of an opposing color",
 			fen:  "rnbqk1nr/pppp1Qpp/8/4p3/4P3/b7/PPPP1PPP/RNB1KBNR b KQkq - 0 3",
 		},
 	}

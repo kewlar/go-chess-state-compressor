@@ -9,7 +9,7 @@ import (
 
 var startingPosition = chess.NewStartingState().Board
 
-// TryEncodeEarlyPosition tries to encode one of the 421 positions possible in first 3 plies in a single magic number. Returns the bitfield and bool true if succeeded, nil and false otherwise.
+// TryEncodeEarlyPosition tries to encode one of the 421 positions possible in first 2 plies in a single magic number. Returns the bitfield and bool true if succeeded, nil and false otherwise.
 func TryEncodeEarlyPosition(state *chess.State) (*bitfield.BitField, bool) {
 	return nil, false
 	bf := &bitfield.BitField{}
