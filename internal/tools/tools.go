@@ -44,6 +44,23 @@ func EliasGamma(x int) []bool {
 	return out
 }
 
+// DecodeEliasGamma decodes variable length Elias gamma code into a positive integer.
+func DecodeEliasGamma(readBit func() bool) int {
+	n := 0
+	for !readBit() {
+		n++
+	}
+	// just read a 1-bit
+	x := 0
+	for range n {
+		x <<= 1
+		if readBit() {
+			x |= 1
+		}
+	}
+	return (1 << n) + x
+}
+
 // CountTrue returns a number of members in bool slice s that are true.
 func CountTrue(s []bool) int {
 	count := 0

@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/tools"
 )
 
@@ -70,6 +71,63 @@ func TestEliasGamma(t *testing.T) {
 			actual := tools.EliasGamma(tt.x)
 			if !slices.Equal(actual, tt.expected) {
 				t.Errorf("EliasGamma(%d) = %#v; want %#v", tt.x, actual, tt.expected)
+			}
+		})
+	}
+}
+
+func TestDecodeEliasGamma(t *testing.T) {
+	tests := []struct {
+		name     string
+		bits     uint64
+		expected int
+	}{
+		{
+			name:     "one",
+			bits:     0b1,
+			expected: 1,
+		},
+		{
+			name:     "two",
+			bits:     0b010,
+			expected: 2,
+		},
+		{
+			name:     "three",
+			bits:     0b110,
+			expected: 3,
+		},
+		{
+			name:     "four",
+			bits:     0b00100,
+			expected: 4,
+		},
+		{
+			name:     "five",
+			bits:     0b10100,
+			expected: 5,
+		},
+		{
+			name:     "sixty four",
+			bits:     0b0000001000000,
+			expected: 64,
+		},
+		{
+			name:     "one; extra bits don't matter",
+			bits:     0b111,
+			expected: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bits := bitfield.BitField{}
+			bits.WriteInt(tt.bits, 64)
+			actual := tools.DecodeEliasGamma(func() bool {
+				return bits.ReadBool()
+			})
+			if actual != tt.expected {
+				t.Errorf("DecodeEliasGamma(%#v) = %d; expected %d", bitfield.IntToBoolSlice(tt.bits, 64), actual, tt.expected)
 			}
 		})
 	}
