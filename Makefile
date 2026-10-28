@@ -14,7 +14,7 @@ GOFLAGS  := -trimpath -ldflags="$(LDFLAGS)"
 all: $(BINARIES)
 
 # Pattern rule: build bin/<name> from cmd/<name>
-$(BIN_DIR)/%: $(CMD_DIR)/% $(wildcard $(CMD_DIR)/%/*.go) $(wildcard internal/*/*.go)
+$(BIN_DIR)/%: $(CMD_DIR)/% $(wildcard $(CMD_DIR)/%/*.go) $(shell find internal -name '*.go')
 	@mkdir -p $(BIN_DIR)
 	@echo "Building $@..."
 	@go build $(GOFLAGS) -o $@ ./$<
