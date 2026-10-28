@@ -1,8 +1,6 @@
 package coders
 
 import (
-	"log"
-
 	"example.com/go-chess/internal/arithmetic"
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
@@ -13,11 +11,6 @@ type ArithmeticCoder struct {
 	frequencies map[rune]int
 	intervals   map[rune]*arithmetic.Interval
 }
-
-const (
-	bitsForArithmeticCodeLength = 7 // The arithmetic code has to fit into 2^7 - 1 bits.
-	maxBitsForArithmeticCode    = (1 << bitsForArithmeticCodeLength) - 1
-)
 
 func NewArithmeticCoder() *ArithmeticCoder {
 	frequencies := map[rune]int{
@@ -50,10 +43,7 @@ func (c *ArithmeticCoder) Encode(state *chess.State) *bitfield.BitField {
 
 	// Arithmetic coding.
 	code := arithmetic.Encode(piecesToRunes(pieces), c.intervals)
-	if len(code) > maxBitsForArithmeticCode {
-		log.Fatalf("encoded data too long (%d bits)", len(code))
-	}
-	bits.WriteInt(uint64(len(code)), bitsForArithmeticCodeLength)
+	bits.WriteInt(uint64(len(code)), arithmetic.BitsForArithmeticCodeLength)
 	bits.WriteBoolSlice(code)
 
 	bits.WriteBool(bool(state.SideToMove))
@@ -76,7 +66,7 @@ func (c *ArithmeticCoder) Decode(bits *bitfield.BitField) *chess.State {
 	colors := bits.ReadBoolSlice(pieceCount)
 
 	// Piece placement: pieces.
-	l := int(bits.ReadInt(bitsForArithmeticCodeLength))
+	l := int(bits.ReadInt(arithmetic.BitsForArithmeticCodeLength))
 	code := bits.ReadBoolSlice(l)
 	pieces := arithmetic.Decode(code, pieceCount, c.intervals)
 

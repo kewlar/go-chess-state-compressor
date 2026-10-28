@@ -1,8 +1,6 @@
 package coders
 
 import (
-	"log"
-
 	"example.com/go-chess/internal/arithmetic"
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
@@ -95,10 +93,7 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 	// Arithmetic coding.
 	colorSlice := bitfield.IntToBoolSlice(uint64(fullColor), len(pieces))
 	code := arithmetic.EncodeAdaptive(piecesToRunes(pieces), fullOccupancy, c.frequencies, colorSlice, state)
-	if len(code) > maxBitsForArithmeticCode {
-		log.Fatalf("encoded data too long (%d bits)", len(code))
-	}
-	bits.WriteInt(uint64(len(code)), bitsForArithmeticCodeLength)
+	bits.WriteInt(uint64(len(code)), arithmetic.BitsForArithmeticCodeLength)
 	bits.WriteBoolSlice(code)
 
 	return bits
@@ -173,7 +168,7 @@ func (c *ArithmeticAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess
 	}
 
 	// Piece placement: pieces.
-	l := int(bits.ReadInt(bitsForArithmeticCodeLength))
+	l := int(bits.ReadInt(arithmetic.BitsForArithmeticCodeLength))
 	code := bits.ReadBoolSlice(l)
 	pieces := arithmetic.DecodeAdaptive(code, pieceCount, occupancy, c.frequencies, colors, state)
 

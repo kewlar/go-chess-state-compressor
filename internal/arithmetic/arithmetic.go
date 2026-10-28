@@ -8,6 +8,11 @@ import (
 	"example.com/go-chess/internal/entropy"
 )
 
+const (
+	BitsForArithmeticCodeLength = 7 // HARDCODED: The arithmetic code has to fit into 2^7 - 1 bits.
+	MaxBitsForArithmeticCode    = (1 << BitsForArithmeticCodeLength) - 1
+)
+
 func FrequenciesToIntervals(frequencies map[rune]int) map[rune]*Interval {
 	pieces := []rune{}
 	tot := 0
@@ -50,8 +55,13 @@ func Encode(data []rune, intervals map[rune]*Interval) []bool {
 	for _, r := range data {
 		interval.Mul(intervals[r])
 	}
+	code := interval.ToBits()
 
-	return interval.ToBits()
+	if len(code) > MaxBitsForArithmeticCode {
+		panic(fmt.Sprintf("encoded data too long (%d bits)", len(code)))
+	}
+
+	return code
 }
 
 func Decode(bits []bool, n int, intervals map[rune]*Interval) []rune {
@@ -94,8 +104,13 @@ func EncodeAdaptive(data []rune, occupancy []bool, frequencies map[rune]int, col
 			freqs = entropy.UpdateFrequencies(r, n-idx, freqs)
 		}
 	}
+	code := interval.ToBits()
 
-	return interval.ToBits()
+	if len(code) > MaxBitsForArithmeticCode {
+		panic(fmt.Sprintf("encoded data too long (%d bits)", len(code)))
+	}
+
+	return code
 }
 
 func DecodeAdaptive(bits []bool, n int, occupancy []bool, frequencies map[rune]int, color []bool, state *chess.State) []rune {
