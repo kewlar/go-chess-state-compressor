@@ -106,6 +106,14 @@ func testPositions() []testPosition {
 			fen:  "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",
 		},
 		{
+			name: "f4 (en passant not in first three plies)",
+			fen:  "rnbqkbnr/pp3ppp/8/2ppp3/2PPPP2/8/PP4PP/RNBQKBNR b KQkq f3 0 4",
+		},
+		{
+			name: "f5 (en passant not in first three plies)",
+			fen:  "rnbqkbnr/pp4pp/8/2pppp2/2PPPP2/8/PP4PP/RNBQKBNR w KQkq f6 0 5",
+		},
+		{
 			name: "Last ply where all pieces on home ranks are of their original colors",
 			fen:  "rnbqk1nr/pppp1ppp/8/4p2Q/4P3/b7/PPPP1PPP/RNB1KBNR w KQkq - 2 3",
 		},
