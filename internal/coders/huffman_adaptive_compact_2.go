@@ -82,7 +82,7 @@ func (c *HuffmanAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.BitF
 	// Piece colors.
 	skipper.SkipEmpty(fullOccupancy)
 	if originalColorRanks {
-		skipper.SkipOriginalRanks()
+		skipper.SkipOriginalRanks(fullOccupancy)
 	}
 	colorOut := skipper.Deflate(color)
 	if maybeOriginalColorRanks {
@@ -148,7 +148,7 @@ func (c *HuffmanAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess.St
 		originalColorRanks = bits.ReadBool()
 	}
 	if originalColorRanks {
-		skipper.SkipOriginalRanks()
+		skipper.SkipOriginalRanks(occupancy)
 	}
 	skipper.SkipCastling(state.Castling, square_skipper.Color)
 	if state.EnPassant.IsValid() {

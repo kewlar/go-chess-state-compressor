@@ -54,19 +54,23 @@ func (s SquareSkipper) SkipEmpty(occupancy []bool) {
 	}
 }
 
-func (s SquareSkipper) SkipOriginalRanks() {
+func (s SquareSkipper) SkipOriginalRanks(occupancy []bool) {
 	// White
 	for _, rank := range []int{0, 1} {
 		for file := range 8 {
 			square := chess.NewSquareFromRankAndFile(rank, file)
-			s[square] = true
+			if occupancy[square] {
+				s[square] = true
+			}
 		}
 	}
 	// Black
 	for _, rank := range []int{6, 7} {
 		for file := range 8 {
 			square := chess.NewSquareFromRankAndFile(rank, file)
-			s[square] = false
+			if occupancy[square] {
+				s[square] = false
+			}
 		}
 	}
 }
