@@ -39,8 +39,8 @@ func (c *HuffmanCompactCoder) Encode(state *chess.State) *bitfield.BitField {
 	board := state.Board
 	if state.EnPassant.IsValid() {
 		enPassantPawn := state.EnPassant ^ 8
-		homeRankSquare := state.EnPassant ^ 16
-		board[enPassantPawn], board[homeRankSquare] = board[homeRankSquare], board[enPassantPawn]
+		backRankSquare := state.EnPassant ^ 16
+		board[enPassantPawn], board[backRankSquare] = board[backRankSquare], board[enPassantPawn]
 	}
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
@@ -96,7 +96,7 @@ func (c *HuffmanCompactCoder) Decode(bits *bitfield.BitField) *chess.State {
 	// Castling availability.
 	state.Castling = chess.NewCastling(bits.ReadBoolSlice(4))
 
-	// Halfmove clock & fullMove number.
+	// Halfmove clock & fullmove number.
 	moveNum := int(bits.ReadInt(21))
 	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 

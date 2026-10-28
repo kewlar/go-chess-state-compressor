@@ -140,7 +140,7 @@ func TestSquareColor(t *testing.T) {
 	}
 }
 
-func TestSquareIsOnHomeRank(t *testing.T) {
+func TestSquareIsOnBackRank(t *testing.T) {
 	tests := []struct {
 		name     string
 		square   chess.Square
@@ -157,9 +157,9 @@ func TestSquareIsOnHomeRank(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual := tt.square.IsOnHomeRank()
+			actual := tt.square.IsOnBackRank()
 			if actual != tt.expected {
-				t.Errorf("Square(%q).IsOnHomeRank() = %v; expected %v", tt.square.String(), actual, tt.expected)
+				t.Errorf("Square(%q).IsOnBackRank() = %v; expected %v", tt.square.String(), actual, tt.expected)
 			}
 		})
 	}

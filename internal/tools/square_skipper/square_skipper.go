@@ -81,10 +81,10 @@ func (s SquareSkipper) SkipOriginalRanks(occupancy []bool) {
 // SkipEnPassant configures the SquareSkipper to discard the squares with en passant pawn, and the two empty squares behind it.
 func (s SquareSkipper) SkipEnPassant(enPassant chess.Square, mode Mode) {
 	enPassantPawn := chess.Square(int(enPassant) ^ 0b1000)
-	enPassantHome := chess.Square(int(enPassant) ^ 0b11000)
+	enPassantPawnOrigin := chess.Square(int(enPassant) ^ 0b11000)
 	s[enPassantPawn] = mode == Occupancy || enPassantPawn.Rank() == 3
 	s[enPassant] = false
-	s[enPassantHome] = false
+	s[enPassantPawnOrigin] = false
 }
 
 // Length returns the number of cells the SquareSkipper is configured to skip.

@@ -15,6 +15,7 @@ type BinaryFenCompactCoder struct {
 
 func NewBinaryFenCompactCoder() *BinaryFenCompactCoder {
 	var (
+		// In the scope of piece coding in this coder, 'P' is code for Pawn that has just moved two squares, and 'R' is code for Rook that is not available for castling (due to it or the King having moved).
 		codePieces      = []rune{'p', 'k', 'q', 'r', 'b', 'n', 'P', 'R'}
 		castlingOptions = []rune{'K', 'Q', 'k', 'q'}
 		castlingSquares = []chess.Square{chess.H1, chess.A1, chess.H8, chess.A8} // Cell coordinates for castling rooks, respectively KQkq.
@@ -109,7 +110,7 @@ func (c *BinaryFenCompactCoder) Decode(bits *bitfield.BitField) *chess.State {
 	// Side to move.
 	state.SideToMove = chess.Color(bits.ReadBool())
 
-	// Halfmove clock & fullMove number.
+	// Halfmove clock & fullmove number.
 	moveNum := int(bits.ReadInt(21))
 	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 

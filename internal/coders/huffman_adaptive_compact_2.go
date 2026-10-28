@@ -98,7 +98,7 @@ func (c *HuffmanAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.BitF
 }
 
 func (c *HuffmanAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess.State {
-	// Halfmove clock & fullMove number.
+	// Halfmove clock & fullmove number.
 	moveNum := int(bits.ReadInt(21))
 
 	if state, ok := TryDecodeEarlyPosition(moveNum, bits); ok {

@@ -70,7 +70,7 @@ func testPositions() []testPosition {
 			fen:  "4k3/5R2/6Q1/8/1q6/8/3R4/4K3 b - - 0 99",
 		},
 		{
-			name: "Last move while the pieces on the home ranks still are only in their original colors.",
+			name: "Last move while the pieces on the starting ranks still are only in their original colors.",
 			fen:  "rnbqkbnr/p1p1pppp/Bp6/3p4/4P3/8/PPPP1PPP/RNBQK1NR w KQkq - 0 3",
 		},
 		{
@@ -110,7 +110,7 @@ func testPositions() []testPosition {
 			fen:  "rnbqkbnr/pp3ppp/8/2ppp3/2PPPP2/8/PP4PP/RNBQKBNR b KQkq f3 0 4",
 		},
 		{
-			name: "f5 (en passant not in first three plies)",
+			name: "f5 (en passant not in first two plies)",
 			fen:  "rnbqkbnr/pp4pp/8/2pppp2/2PPPP2/8/PP4PP/RNBQKBNR w KQkq f6 0 5",
 		},
 		{

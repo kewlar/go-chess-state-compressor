@@ -38,7 +38,7 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 
 	bits := &bitfield.BitField{}
 
-	// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
+	// Up to possibility for Black to make their 3rd move, all pieces on the starting ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
 	maybeOriginalColorRanks := maybeOriginalColorRanks(state)
 	originalColorRanks := maybeOriginalColorRanks && reallyOriginalColorRanks(state.Board)
 
@@ -100,7 +100,7 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 }
 
 func (c *ArithmeticAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess.State {
-	// Halfmove clock & fullMove number.
+	// Halfmove clock & fullmove number.
 	moveNum := int(bits.ReadInt(21))
 
 	if state, ok := TryDecodeEarlyPosition(moveNum, bits); ok {
@@ -143,7 +143,7 @@ func (c *ArithmeticAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess
 
 	// Restore full-board piece color map. True = White, False = Black or empty.
 	skipper.SkipEmpty(occupancy)
-	// Up to possibility for Black to make their 3rd move, all pieces on the home ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
+	// Up to possibility for Black to make their 3rd move, all pieces on the starting ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
 	maybeOriginalColorRanks := maybeOriginalColorRanks(state)
 	originalColorRanks := false
 	if maybeOriginalColorRanks {

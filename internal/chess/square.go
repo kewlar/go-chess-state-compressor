@@ -117,8 +117,8 @@ func (s Square) Color() Color {
 	return Color((s.Rank()+s.File())&1 == 1)
 }
 
-// IsOnHomeRank returns if the square is either the home rank or the back rank.
-func (s Square) IsOnHomeRank() bool {
+// IsOnBackRank returns if the square is either the first rank or the last rank.
+func (s Square) IsOnBackRank() bool {
 	rank := s.Rank()
 	return rank == 0 || rank == 7
 }
