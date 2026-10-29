@@ -32,7 +32,7 @@ func main() {
 	}
 
 	// Initialize the streaming PGN scanner from v2
-	scanner := chess.NewScanner(reader)
+	scanner := chess.NewScanner(reader, chess.WithScannerBufferSize(1024*1024))
 
 	if !scanner.HasNext() {
 		fmt.Println(scanner.LastError())
