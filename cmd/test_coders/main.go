@@ -108,11 +108,11 @@ func main() {
 	}
 	ws := strconv.Itoa(w)
 
-	fmt.Printf(" %-"+ws+"s | %9s | %9s | %9s | %9s | %11s | %s\n", "Coder", "Min, b", "Mean, b", "Median, b", "Max, b", "Duration, s", "Worst case")
-	fmt.Println(strings.Repeat("-", w+6*4+8+10+7*3-1))
+	fmt.Printf("| %-"+ws+"s | %9s | %9s | %9s | %9s | %11s | %s |\n", "Coder", "Min, b", "Mean, b", "Median, b", "Max, b", "Duration, s", "Worst case FEN")
+	fmt.Println("| :" + strings.Repeat("-", w-1) + strings.Repeat(" | --------:", 4) + " | ----------: | :------------- |")
 	for idx, coder := range coders {
 		reporter := reporters[idx]
 		benchmark := benchmarks[idx]
-		fmt.Printf(" %-"+ws+"s | %9d | %9.5f | %9d | %9d | %11.3f | %s\n", coder.Name(), reporter.Min, reporter.Mean(), reporter.Median(), reporter.Max, benchmark.Duration.Seconds(), reporter.WorstCase)
+		fmt.Printf("| %-"+ws+"s | %9d | %9.5f | %9d | %9d | %11.3f | %s |\n", coder.Name(), reporter.Min, reporter.Mean(), reporter.Median(), reporter.Max, benchmark.Duration.Seconds(), reporter.WorstCase)
 	}
 }
