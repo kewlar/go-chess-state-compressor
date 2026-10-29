@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	"example.com/go-chess/internal/arithmetic"
+	"github.com/kewlar/go-chess-state-compressor/internal/arithmetic"
 )
 
 func TestRationalEquality(t *testing.T) {

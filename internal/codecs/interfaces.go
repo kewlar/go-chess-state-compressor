@@ -1,8 +1,8 @@
 package codecs
 
 import (
-	"example.com/go-chess/internal/bitfield"
-	"example.com/go-chess/internal/chess"
+	"github.com/kewlar/go-chess-state-compressor/internal/bitfield"
+	"github.com/kewlar/go-chess-state-compressor/internal/chess"
 )
 
 type Codec interface {

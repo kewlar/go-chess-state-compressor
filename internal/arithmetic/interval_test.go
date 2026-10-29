@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"example.com/go-chess/internal/arithmetic"
+	"github.com/kewlar/go-chess-state-compressor/internal/arithmetic"
 )
 
 func TestIntervalLength(t *testing.T) {

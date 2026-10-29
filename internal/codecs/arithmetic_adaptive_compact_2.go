@@ -1,11 +1,11 @@
 package codecs
 
 import (
-	"example.com/go-chess/internal/arithmetic"
-	"example.com/go-chess/internal/bitfield"
-	"example.com/go-chess/internal/chess"
-	"example.com/go-chess/internal/tools"
-	"example.com/go-chess/internal/tools/squareskipper"
+	"github.com/kewlar/go-chess-state-compressor/internal/arithmetic"
+	"github.com/kewlar/go-chess-state-compressor/internal/bitfield"
+	"github.com/kewlar/go-chess-state-compressor/internal/chess"
+	"github.com/kewlar/go-chess-state-compressor/internal/tools"
+	"github.com/kewlar/go-chess-state-compressor/internal/tools/squareskipper"
 )
 
 type ArithmeticAdaptiveCompact2Codec struct {

@@ -3,7 +3,7 @@ package chess
 import (
 	"fmt"
 
-	"example.com/go-chess/internal/tools"
+	"github.com/kewlar/go-chess-state-compressor/internal/tools"
 )
 
 // Attacks returns true if the piece in the 'from' square can attack the piece on the 'target' square'.

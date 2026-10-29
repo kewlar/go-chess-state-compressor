@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"example.com/go-chess/internal/bitfield"
+	"github.com/kewlar/go-chess-state-compressor/internal/bitfield"
 )
 
 func TestIntToBoolSlice(t *testing.T) {

@@ -1,7 +1,7 @@
 package squareskipper
 
 import (
-	"example.com/go-chess/internal/chess"
+	"github.com/kewlar/go-chess-state-compressor/internal/chess"
 )
 
 type (

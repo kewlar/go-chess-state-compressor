@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"example.com/go-chess/internal/arithmetic"
+	"github.com/kewlar/go-chess-state-compressor/internal/arithmetic"
 )
 
 func TestConcurrentArithmetic(t *testing.T) {

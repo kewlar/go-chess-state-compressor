@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"example.com/go-chess/internal/chess"
-	"example.com/go-chess/internal/codecs"
+	"github.com/kewlar/go-chess-state-compressor/internal/chess"
+	"github.com/kewlar/go-chess-state-compressor/internal/codecs"
 )
 
 type testPosition struct {

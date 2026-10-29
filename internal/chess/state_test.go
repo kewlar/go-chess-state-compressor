@@ -3,7 +3,7 @@ package chess_test
 import (
 	"testing"
 
-	"example.com/go-chess/internal/chess"
+	"github.com/kewlar/go-chess-state-compressor/internal/chess"
 )
 
 func TestNewStartingState(t *testing.T) {

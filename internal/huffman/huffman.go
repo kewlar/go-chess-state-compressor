@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"slices"
 
-	"example.com/go-chess/internal/chess"
-	"example.com/go-chess/internal/entropy"
+	"github.com/kewlar/go-chess-state-compressor/internal/chess"
+	"github.com/kewlar/go-chess-state-compressor/internal/entropy"
 )
 
 type Node struct {

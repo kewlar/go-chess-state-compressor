@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"example.com/go-chess/internal/chess"
-	"example.com/go-chess/internal/codecs"
-	"example.com/go-chess/internal/reporter"
+	"github.com/kewlar/go-chess-state-compressor/internal/chess"
+	"github.com/kewlar/go-chess-state-compressor/internal/codecs"
+	"github.com/kewlar/go-chess-state-compressor/internal/reporter"
 )
 
 type BenchResult struct {

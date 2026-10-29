@@ -3,8 +3,8 @@ package entropy
 import (
 	"maps"
 
-	"example.com/go-chess/internal/chess"
-	"example.com/go-chess/internal/tools"
+	"github.com/kewlar/go-chess-state-compressor/internal/chess"
+	"github.com/kewlar/go-chess-state-compressor/internal/tools"
 )
 
 func AdjustFrequencies(frequencies map[rune]int, square chess.Square, numPieces int, occupancy, color []bool, state *chess.State, placedPieces []rune) map[rune]int {

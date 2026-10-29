@@ -1,4 +1,4 @@
-module example.com/go-chess
+module github.com/kewlar/go-chess-state-compressor
 
 go 1.27.0
 
