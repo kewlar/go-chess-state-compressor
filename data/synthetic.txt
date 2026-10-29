@@ -1,0 +1,12 @@
+b1q1k1r1/r1n1n1b1/1p1p1p1p/p1p1p1p1/P1P1P1P1/1P1P1P1P/R1N1N1B1/B1Q1K1R1 w - - 18 18 # Longest FEN
+rnbqkbBr/pppppp1p/5n2/8/8/8/PPPPP1PP/RNBQKBNR b KQkq - 0 5 # Earliest possible promotion (to Bishop)
+rnbqkbRr/pppppp1p/5n2/8/8/8/PPPPP1PP/RNBQKBNR b KQkq - 0 5 # Earliest possible promotion (to Rook)
+3qQq1q/1rkb1Q1q/Q6q/7q/Q7/Q5K1/Q1q3B1/QqQq1QR1 b - - 0 80 # 18 Queens
+8/1rkbqQ1q/Q3Qq1q/1qq4q/Q7/Q4QK1/QQqQq1BR/8 b - - 12 86 # 18 Queens, no pieces on home ranks
+8/8/8/5K2/6Qk/8/8/8 b - - 150 8849 # Ending for the longest possible game
+4k3/5R2/6Q1/8/1q6/8/3R4/4K3 w - - 0 99 # Black cannot be in check
+4k3/5R2/6Q1/8/1q6/8/3R4/4K3 b - - 0 99 # White cannot be in check
+rnbqkbnr/p1p1pppp/Bp6/3p4/4P3/8/PPPP1PPP/RNBQK1NR w KQkq - 0 3 # Last move while the pieces on the home ranks still are only in their original colors.
+rnBqkbnr/p1p1pppp/1p6/3p4/4P3/8/PPPP1PPP/RNBQK1NR b KQkq - 0 3 # Fastest capture by White on the back rank
+k7/P7/P7/P7/P7/P7/P7/R3K3 w Q - 1 35 # Kuwait Immortal - 6 Pawns in a file.
+8/4k3/8/8/8/8/5K2/8 b - - 0 17 # Shortest bare kings endgame
