@@ -1,50 +1,46 @@
-package coders
+package codecs
 
 import (
-	"example.com/go-chess/internal/arithmetic"
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
 	"example.com/go-chess/internal/tools"
 )
 
-type ArithmeticCoder struct {
-	frequencies map[rune]int
-	intervals   map[rune]*arithmetic.Interval
+type BinaryFenCodec struct {
+	pieceCodes [256]byte
+	codePieces []rune
 }
 
-func NewArithmeticCoder() *ArithmeticCoder {
-	frequencies := map[rune]int{
-		'p': 16,
-		'k': 2,
-		'q': 2,
-		'r': 4,
-		'b': 4,
-		'n': 4,
+func NewBinaryFenCodec() *BinaryFenCodec {
+	codePieces := []rune{'p', 'k', 'q', 'r', 'b', 'n'}
+
+	pieceCodes := [256]byte{}
+	for code, piece := range codePieces {
+		pieceCodes[byte(piece)] = byte(code)
 	}
 
-	return &ArithmeticCoder{
-		frequencies: frequencies,
-		intervals:   arithmetic.FrequenciesToIntervals(frequencies),
+	return &BinaryFenCodec{
+		pieceCodes: pieceCodes,
+		codePieces: codePieces,
 	}
 }
 
-func (c *ArithmeticCoder) Name() string {
-	return "Arithmetic"
+func (c *BinaryFenCodec) Name() string {
+	return "BinaryFen"
 }
 
-func (c *ArithmeticCoder) Encode(state *chess.State) *bitfield.BitField {
+func (c *BinaryFenCodec) Encode(state *chess.State) *bitfield.BitField {
 	bits := &bitfield.BitField{}
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy, color, pieces := separateBoardInformation(state.Board)
 
+	// Piece placement.
 	bits.WriteInt(occupancy, 64)
 	bits.WriteInt(uint64(color), len(pieces))
-
-	// Arithmetic coding.
-	code := arithmetic.Encode(piecesToRunes(pieces), c.intervals)
-	bits.WriteInt(uint64(len(code)), arithmetic.BitsForArithmeticCodeLength)
-	bits.WriteBoolSlice(code)
+	for _, piece := range pieces {
+		bits.WriteInt(uint64(c.pieceCodes[piece.Type()]), 3)
+	}
 
 	bits.WriteBool(bool(state.SideToMove))
 	bits.WriteBoolSlice(state.Castling.BoolSlice())
@@ -55,7 +51,7 @@ func (c *ArithmeticCoder) Encode(state *chess.State) *bitfield.BitField {
 	return bits
 }
 
-func (c *ArithmeticCoder) Decode(bits *bitfield.BitField) *chess.State {
+func (c *BinaryFenCodec) Decode(bits *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Piece placement: occupancy.
@@ -66,18 +62,20 @@ func (c *ArithmeticCoder) Decode(bits *bitfield.BitField) *chess.State {
 	colors := bits.ReadBoolSlice(pieceCount)
 
 	// Piece placement: pieces.
-	l := int(bits.ReadInt(arithmetic.BitsForArithmeticCodeLength))
-	code := bits.ReadBoolSlice(l)
-	pieces := arithmetic.Decode(code, pieceCount, c.intervals)
-
-	// Piece placement.
-	placePieces(&state.Board, occupancy, pieces, colors)
+	pieces := make([]rune, 0, pieceCount)
+	for range pieceCount {
+		piece := byte(bits.ReadInt(3))
+		pieces = append(pieces, c.codePieces[piece])
+	}
 
 	state.SideToMove = chess.Color(bits.ReadBool())
 	state.Castling = chess.NewCastling(bits.ReadBoolSlice(4))
 	state.EnPassant = chess.Square(bits.ReadInt(7))
 	state.Halfmove = int(bits.ReadInt(8))
 	state.Fullmove = int(bits.ReadInt(14))
+
+	// Piece placement.
+	placePieces(&state.Board, occupancy, pieces, colors)
 
 	return state
 }

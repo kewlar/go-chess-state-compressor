@@ -1,4 +1,4 @@
-package coders
+package codecs
 
 import (
 	"example.com/go-chess/internal/bitfield"
@@ -6,16 +6,16 @@ import (
 	"example.com/go-chess/internal/tools"
 )
 
-type BinaryFenCompactCoder struct {
+type BinaryFenCompactCodec struct {
 	pieceCodes      [256]byte
 	codePieces      []rune
 	castlingOptions []rune
 	castlingSquares []chess.Square
 }
 
-func NewBinaryFenCompactCoder() *BinaryFenCompactCoder {
+func NewBinaryFenCompactCodec() *BinaryFenCompactCodec {
 	var (
-		// In the scope of piece coding in this coder, 'P' is code for Pawn that has just moved two squares, and 'R' is code for Rook that is not available for castling (due to it or the King having moved).
+		// In the scope of piece coding in this codec, 'P' is code for Pawn that has just moved two squares, and 'R' is code for Rook that is not available for castling (due to it or the King having moved).
 		codePieces      = []rune{'p', 'k', 'q', 'r', 'b', 'n', 'P', 'R'}
 		castlingOptions = []rune{'K', 'Q', 'k', 'q'}
 		castlingSquares = []chess.Square{chess.H1, chess.A1, chess.H8, chess.A8} // Cell coordinates for castling rooks, respectively KQkq.
@@ -25,7 +25,7 @@ func NewBinaryFenCompactCoder() *BinaryFenCompactCoder {
 		pieceCodes[byte(piece)] = byte(code)
 	}
 
-	return &BinaryFenCompactCoder{
+	return &BinaryFenCompactCodec{
 		pieceCodes:      pieceCodes,
 		codePieces:      codePieces,
 		castlingOptions: castlingOptions,
@@ -33,11 +33,11 @@ func NewBinaryFenCompactCoder() *BinaryFenCompactCoder {
 	}
 }
 
-func (c *BinaryFenCompactCoder) Name() string {
+func (c *BinaryFenCompactCodec) Name() string {
 	return "BinaryFen (compact)"
 }
 
-func (c *BinaryFenCompactCoder) Encode(state *chess.State) *bitfield.BitField {
+func (c *BinaryFenCompactCodec) Encode(state *chess.State) *bitfield.BitField {
 	// En passant square.
 	enPassantPawn := chess.InvalidSquare
 	if state.EnPassant.IsValid() {
@@ -90,7 +90,7 @@ func (c *BinaryFenCompactCoder) Encode(state *chess.State) *bitfield.BitField {
 	return bits
 }
 
-func (c *BinaryFenCompactCoder) Decode(bits *bitfield.BitField) *chess.State {
+func (c *BinaryFenCompactCodec) Decode(bits *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Piece placement: occupancy.

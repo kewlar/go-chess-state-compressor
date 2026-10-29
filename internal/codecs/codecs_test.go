@@ -1,11 +1,11 @@
-package coders_test
+package codecs_test
 
 import (
 	"fmt"
 	"testing"
 
 	"example.com/go-chess/internal/chess"
-	"example.com/go-chess/internal/coders"
+	"example.com/go-chess/internal/codecs"
 )
 
 type testPosition struct {
@@ -13,21 +13,21 @@ type testPosition struct {
 	fen  string
 }
 
-func testCoders() []coders.Coder {
-	return []coders.Coder{
-		coders.NewFenCoder(),
-		coders.NewBinaryFenCoder(),
-		coders.NewBinaryFenCompactCoder(),
-		coders.NewHuffmanCoder(),
-		coders.NewHuffmanAdaptiveCoder(),
-		coders.NewHuffmanCompactCoder(),
-		coders.NewArithmeticCoder(),
-		coders.NewArithmeticByCountCoder(),
-		coders.NewArithmeticAdaptiveCoder(),
-		coders.NewArithmeticAdaptiveCompactCoder(),
-		coders.NewHuffmanAdaptiveCompactCoder(),
-		coders.NewArithmeticAdaptiveCompact2Coder(),
-		coders.NewHuffmanAdaptiveCompact2Coder(),
+func testCodecs() []codecs.Codec {
+	return []codecs.Codec{
+		codecs.NewFenCodec(),
+		codecs.NewBinaryFenCodec(),
+		codecs.NewBinaryFenCompactCodec(),
+		codecs.NewHuffmanCodec(),
+		codecs.NewHuffmanAdaptiveCodec(),
+		codecs.NewHuffmanCompactCodec(),
+		codecs.NewArithmeticCodec(),
+		codecs.NewArithmeticByCountCodec(),
+		codecs.NewArithmeticAdaptiveCodec(),
+		codecs.NewArithmeticAdaptiveCompactCodec(),
+		codecs.NewHuffmanAdaptiveCompactCodec(),
+		codecs.NewArithmeticAdaptiveCompact2Codec(),
+		codecs.NewHuffmanAdaptiveCompact2Codec(),
 	}
 }
 
@@ -124,15 +124,15 @@ func testPositions() []testPosition {
 	}
 }
 
-func TestCodersRoundTrip(t *testing.T) {
-	coders := testCoders()
+func TestCodecsRoundTrip(t *testing.T) {
+	codecs := testCodecs()
 	positions := testPositions()
-	for _, coder := range coders {
+	for _, codec := range codecs {
 		for _, position := range positions {
-			t.Run(fmt.Sprintf("%s: %s", coder.Name(), position.name), func(t *testing.T) {
+			t.Run(fmt.Sprintf("%s: %s", codec.Name(), position.name), func(t *testing.T) {
 				state, _ := chess.ParseFen(position.fen)
-				encoded := coder.Encode(state)
-				decoded := coder.Decode(encoded)
+				encoded := codec.Encode(state)
+				decoded := codec.Decode(encoded)
 				decodedFen := decoded.ToFen()
 				if position.fen != decodedFen {
 					t.Errorf("Decode(Encode(%q)) = %q; expected %q", position.fen, decodedFen, position.fen)
@@ -145,19 +145,19 @@ func TestCodersRoundTrip(t *testing.T) {
 	}
 }
 
-func BenchmarkCoders(b *testing.B) {
-	coders := testCoders()
+func BenchmarkCodecs(b *testing.B) {
+	codecs := testCodecs()
 	positions := testPositions()
 	states := make([]*chess.State, len(positions))
 	for i, position := range positions {
 		states[i], _ = chess.ParseFen(position.fen)
 	}
-	for _, coder := range coders {
-		b.Run(coder.Name(), func(b *testing.B) {
+	for _, codec := range codecs {
+		b.Run(codec.Name(), func(b *testing.B) {
 			for b.Loop() {
 				for _, state := range states {
-					encoded := coder.Encode(state)
-					coder.Decode(encoded)
+					encoded := codec.Encode(state)
+					codec.Decode(encoded)
 				}
 			}
 		})

@@ -1,18 +1,19 @@
-package coders
+package codecs
 
 import (
+	"slices"
+
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
 	"example.com/go-chess/internal/huffman"
 	"example.com/go-chess/internal/tools"
-	"example.com/go-chess/internal/tools/squareskipper"
 )
 
-type HuffmanAdaptiveCompact2Coder struct {
+type HuffmanAdaptiveCompactCodec struct {
 	frequencies map[rune]int
 }
 
-func NewHuffmanAdaptiveCompact2Coder() *HuffmanAdaptiveCompact2Coder {
+func NewHuffmanAdaptiveCompactCodec() *HuffmanAdaptiveCompactCodec {
 	frequencies := map[rune]int{
 		'p': 1600,
 		'k': 200,
@@ -22,82 +23,92 @@ func NewHuffmanAdaptiveCompact2Coder() *HuffmanAdaptiveCompact2Coder {
 		'n': 400,
 	}
 
-	return &HuffmanAdaptiveCompact2Coder{
+	return &HuffmanAdaptiveCompactCodec{
 		frequencies: frequencies,
 	}
 }
 
-func (c *HuffmanAdaptiveCompact2Coder) Name() string {
-	return "Huffman (adaptive, compact, v2)"
+func (c *HuffmanAdaptiveCompactCodec) Name() string {
+	return "Huffman (adaptive, compact)"
 }
 
-func (c *HuffmanAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.BitField {
+func (c *HuffmanAdaptiveCompactCodec) Encode(state *chess.State) *bitfield.BitField {
 	if bits, ok := TryEncodeEarlyPosition(state); ok {
 		return bits
 	}
 
 	bits := &bitfield.BitField{}
 
+	// Encode board in separate bitboards for occupancy, color, and a list of pieces
+	occupancy, fullColor, pieces := separateBoardInformation(state.Board)
+
 	// Up to possibility for Black to make their 3rd move, all pieces on the starting ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
 	maybeOriginalColorRanks := maybeOriginalColorRanks(state)
 	originalColorRanks := maybeOriginalColorRanks && reallyOriginalColorRanks(state.Board)
 
-	// Encode board in separate bitboards for occupancy, color, and a list of pieces
-	occupancy, fullColor, pieces := separateBoardInformation(state.Board)
-	color := make([]bool, 64)
-	for square, piece := range state.Board.OccupiedSquares() {
-		color[square] = piece.Color() == chess.White
+	// Don't store color for home ranks, if we can help it.
+	color := fullColor
+	colorCount := len(pieces)
+	if originalColorRanks {
+		color = 0
+		colorCount = 0
+		for square, piece := range state.Board.OccupiedSquares() {
+			if 1 < square.Rank() && square.Rank() < 6 {
+				if piece.Color() == chess.White {
+					color |= 1 << colorCount
+				}
+				colorCount++
+			}
+		}
 	}
-	fullOccupancy := bitfield.IntToBoolSlice(occupancy, 64)
 
 	// Halfmove clock & fullmove number.
 	moveNum := state.Fullmove*(chess.MaxHalfmove+1) + state.Halfmove
 	bits.WriteInt(uint64(moveNum), 21)
 
-	skipper := squareskipper.NewSquareSkipper()
-
-	// Side to move.
-	bits.WriteBool(bool(state.SideToMove))
-
 	// Castling availability.
 	bits.WriteBool(state.Castling.IsAvailable())
 	if state.Castling.IsAvailable() {
 		bits.WriteBoolSlice(state.Castling.BoolSlice())
-		skipper.SkipCastling(state.Castling, squareskipper.Occupancy)
 	}
 
 	// En passant square.
 	if state.EnPassant.IsValid() {
 		bits.WriteBool(true)
 		bits.WriteInt(uint64(state.EnPassant), 3) // Only the lowest 3 bits -- the file -- are necessary.
-		skipper.SkipEnPassant(state.EnPassant, squareskipper.Occupancy)
 	} else if state.Halfmove == 0 { // Only write "no en passant" flag if en passant is at all possible. In this case, the last move might have been a Pawn move.
 		bits.WriteBool(false)
 	}
 
+	// Encode side to move in occupancy data, if possible.
+	occupancyOut := occupancy
+	if len(pieces) < 32 && state.SideToMove == chess.Black {
+		occupancyOut = occupancyOut ^ 0xFF_FF_FF_FF_FF_FF_FF_FF
+	}
+
 	// Piece placement.
-	occupancyOut := skipper.Deflate(fullOccupancy)
-	bits.WriteBoolSlice(occupancyOut)
+	bits.WriteInt(occupancyOut, 64)
+
+	// Side to move.
+	if len(pieces) == 32 {
+		bits.WriteBool(bool(state.SideToMove))
+	}
 
 	// Piece colors.
-	skipper.SkipEmpty(fullOccupancy)
-	if originalColorRanks {
-		skipper.SkipOriginalRanks(fullOccupancy)
-	}
-	colorOut := skipper.Deflate(color)
 	if maybeOriginalColorRanks {
 		bits.WriteBool(originalColorRanks)
 	}
-	bits.WriteBoolSlice(colorOut)
+	bits.WriteInt(uint64(color), colorCount)
 
 	// Huffman coding.
+	fullOccupancy := bitfield.IntToBoolSlice(occupancy, 64)
 	colorSlice := bitfield.IntToBoolSlice(uint64(fullColor), len(pieces))
 	bits.WriteBoolSlice(huffman.EncodeAdaptive(piecesToRunes(pieces), fullOccupancy, c.frequencies, colorSlice, state))
 
 	return bits
 }
 
-func (c *HuffmanAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess.State {
+func (c *HuffmanAdaptiveCompactCodec) Decode(bits *bitfield.BitField) *chess.State {
 	// Halfmove clock & fullmove number.
 	moveNum := int(bits.ReadInt(21))
 
@@ -108,61 +119,76 @@ func (c *HuffmanAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess.St
 	state := chess.NewState()
 	state.Fullmove, state.Halfmove = moveNum/(chess.MaxHalfmove+1), moveNum%(chess.MaxHalfmove+1)
 
-	// Side to move.
-	state.SideToMove = chess.Color(bits.ReadBool())
-
-	skipper := squareskipper.NewSquareSkipper()
-
 	// Castling availability.
 	hasCastling := bits.ReadBool()
 	if hasCastling {
 		state.Castling = chess.NewCastling(bits.ReadBoolSlice(4))
-		skipper.SkipCastling(state.Castling, squareskipper.Occupancy)
 	}
 	// En passant square.
 	hasEnPassant := false
+	enPassantFile := -1
 	if state.Halfmove == 0 { // The last move might have been a Pawn move.
 		hasEnPassant = bits.ReadBool()
 		if hasEnPassant {
-			enPassantFile := int(bits.ReadInt(3))
-			rank := 2
-			if state.SideToMove == chess.White {
-				rank = 5
-			}
-			state.EnPassant = chess.NewSquareFromRankAndFile(rank, enPassantFile)
-			skipper.SkipEnPassant(state.EnPassant, squareskipper.Occupancy)
+			enPassantFile = int(bits.ReadInt(3))
 		}
 	}
 
 	// Piece placement: occupancy.
-	occupancyIn := bits.ReadBoolSlice(64 - skipper.Length())
-	occupancy := skipper.Inflate(occupancyIn)
+	occupancy := bits.ReadBoolSlice(64)
 	pieceCount := tools.CountTrue(occupancy)
 
-	// Restore full-board piece color map. True = White, False = Black or empty.
-	skipper.SkipEmpty(occupancy)
+	// Side to move. May be encoded in the occupancy bitboard.
+	state.SideToMove = chess.White
+	if pieceCount > 32 {
+		for i, x := range occupancy {
+			occupancy[i] = !x
+		}
+		pieceCount = 64 - pieceCount
+		state.SideToMove = chess.Black
+	} else if pieceCount == 32 {
+		state.SideToMove = chess.Color(bits.ReadBool())
+	}
+
 	// Up to possibility for Black to make their 3rd move, all pieces on the starting ranks (1, 2, 7, 8) have their original colors, and we don't need to encode that.
 	maybeOriginalColorRanks := maybeOriginalColorRanks(state)
 	originalColorRanks := false
 	if maybeOriginalColorRanks {
 		originalColorRanks = bits.ReadBool()
 	}
-	if originalColorRanks {
-		skipper.SkipOriginalRanks(occupancy)
-	}
-	skipper.SkipCastling(state.Castling, squareskipper.Color)
-	if state.EnPassant.IsValid() {
-		skipper.SkipEnPassant(state.EnPassant, squareskipper.Color)
-	}
 
 	// Piece placement: colors.
-	colorIn := bits.ReadBoolSlice(64 - skipper.Length())
-	fullColor := skipper.Inflate(colorIn)
-	colors := []bool{}
-	for i, isOccupied := range occupancy {
-		if isOccupied {
-			colors = append(colors, fullColor[i])
+	colorCount := pieceCount
+	numBlack, numWhite := 0, 0
+	if originalColorRanks {
+		for i, occupied := range occupancy {
+			if !occupied {
+				continue
+			}
+			switch chess.Square(i).Rank() {
+			case 6, 7:
+				numBlack++
+			case 0, 1:
+				numWhite++
+			}
 		}
+		colorCount -= numBlack + numWhite
+	}
+	colors := bits.ReadBoolSlice(colorCount)
+	if originalColorRanks {
+		blacks := make([]bool, numBlack)
+		whites := slices.Repeat([]bool{true}, numWhite)
+		colors = append(blacks, colors...)
+		colors = append(colors, whites...)
+	}
+
+	// Finish decoding en passant square.
+	if hasEnPassant {
+		rank := 2
+		if state.SideToMove == chess.White {
+			rank = 5
+		}
+		state.EnPassant = chess.NewSquareFromRankAndFile(rank, enPassantFile)
 	}
 
 	// Piece placement: pieces.

@@ -1,21 +1,21 @@
-package coders
+package codecs
 
 import (
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
 )
 
-type FenCoder struct{}
+type FenCodec struct{}
 
-func NewFenCoder() *FenCoder {
-	return &FenCoder{}
+func NewFenCodec() *FenCodec {
+	return &FenCodec{}
 }
 
-func (c *FenCoder) Name() string {
+func (c *FenCodec) Name() string {
 	return "FEN"
 }
 
-func (c *FenCoder) Encode(state *chess.State) *bitfield.BitField {
+func (c *FenCodec) Encode(state *chess.State) *bitfield.BitField {
 	fen := state.ToFen()
 	return &bitfield.BitField{
 		Length: (len(fen) + 1) * 8,
@@ -23,7 +23,7 @@ func (c *FenCoder) Encode(state *chess.State) *bitfield.BitField {
 	}
 }
 
-func (c *FenCoder) Decode(bits *bitfield.BitField) *chess.State {
+func (c *FenCodec) Decode(bits *bitfield.BitField) *chess.State {
 	l := bits.Length/8 - 1
 	state, err := chess.ParseFen(string(bits.Data[:l]))
 	if err != nil {

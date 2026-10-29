@@ -1,4 +1,4 @@
-package coders
+package codecs
 
 import (
 	"example.com/go-chess/internal/arithmetic"
@@ -7,12 +7,12 @@ import (
 	"example.com/go-chess/internal/tools"
 )
 
-type ArithmeticByCountCoder struct {
+type ArithmeticByCountCodec struct {
 	frequencies map[int]map[rune]int
 	intervals   map[int]map[rune]*arithmetic.Interval
 }
 
-func NewArithmeticByCountCoder() *ArithmeticByCountCoder {
+func NewArithmeticByCountCodec() *ArithmeticByCountCodec {
 	frequencies := map[int]map[rune]int{}
 	frequencies[32] = map[rune]int{
 		'p': 8, // 0.500000
@@ -268,17 +268,17 @@ func NewArithmeticByCountCoder() *ArithmeticByCountCoder {
 		intervals[count] = arithmetic.FrequenciesToIntervals(frequencies[count])
 	}
 
-	return &ArithmeticByCountCoder{
+	return &ArithmeticByCountCodec{
 		frequencies: frequencies,
 		intervals:   intervals,
 	}
 }
 
-func (c *ArithmeticByCountCoder) Name() string {
+func (c *ArithmeticByCountCodec) Name() string {
 	return "Arithmetic (by piece count)"
 }
 
-func (c *ArithmeticByCountCoder) Encode(state *chess.State) *bitfield.BitField {
+func (c *ArithmeticByCountCodec) Encode(state *chess.State) *bitfield.BitField {
 	bits := &bitfield.BitField{}
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
@@ -302,7 +302,7 @@ func (c *ArithmeticByCountCoder) Encode(state *chess.State) *bitfield.BitField {
 	return bits
 }
 
-func (c *ArithmeticByCountCoder) Decode(bits *bitfield.BitField) *chess.State {
+func (c *ArithmeticByCountCodec) Decode(bits *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Piece placement: occupancy.

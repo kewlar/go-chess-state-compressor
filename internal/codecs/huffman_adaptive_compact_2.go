@@ -1,18 +1,18 @@
-package coders
+package codecs
 
 import (
-	"example.com/go-chess/internal/arithmetic"
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
+	"example.com/go-chess/internal/huffman"
 	"example.com/go-chess/internal/tools"
 	"example.com/go-chess/internal/tools/squareskipper"
 )
 
-type ArithmeticAdaptiveCompact2Coder struct {
+type HuffmanAdaptiveCompact2Codec struct {
 	frequencies map[rune]int
 }
 
-func NewArithmeticAdaptiveCompact2Coder() *ArithmeticAdaptiveCompact2Coder {
+func NewHuffmanAdaptiveCompact2Codec() *HuffmanAdaptiveCompact2Codec {
 	frequencies := map[rune]int{
 		'p': 1600,
 		'k': 200,
@@ -22,16 +22,16 @@ func NewArithmeticAdaptiveCompact2Coder() *ArithmeticAdaptiveCompact2Coder {
 		'n': 400,
 	}
 
-	return &ArithmeticAdaptiveCompact2Coder{
+	return &HuffmanAdaptiveCompact2Codec{
 		frequencies: frequencies,
 	}
 }
 
-func (c *ArithmeticAdaptiveCompact2Coder) Name() string {
-	return "Arithmetic (adaptive, compact, v2)"
+func (c *HuffmanAdaptiveCompact2Codec) Name() string {
+	return "Huffman (adaptive, compact, v2)"
 }
 
-func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.BitField {
+func (c *HuffmanAdaptiveCompact2Codec) Encode(state *chess.State) *bitfield.BitField {
 	if bits, ok := TryEncodeEarlyPosition(state); ok {
 		return bits
 	}
@@ -44,7 +44,7 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy, fullColor, pieces := separateBoardInformation(state.Board)
-	color := make([]bool, 64) // TODO: color := inspector.Color64()
+	color := make([]bool, 64)
 	for square, piece := range state.Board.OccupiedSquares() {
 		color[square] = piece.Color() == chess.White
 	}
@@ -90,16 +90,14 @@ func (c *ArithmeticAdaptiveCompact2Coder) Encode(state *chess.State) *bitfield.B
 	}
 	bits.WriteBoolSlice(colorOut)
 
-	// Arithmetic coding.
+	// Huffman coding.
 	colorSlice := bitfield.IntToBoolSlice(uint64(fullColor), len(pieces))
-	code := arithmetic.EncodeAdaptive(piecesToRunes(pieces), fullOccupancy, c.frequencies, colorSlice, state)
-	bits.WriteInt(uint64(len(code)), arithmetic.BitsForArithmeticCodeLength)
-	bits.WriteBoolSlice(code)
+	bits.WriteBoolSlice(huffman.EncodeAdaptive(piecesToRunes(pieces), fullOccupancy, c.frequencies, colorSlice, state))
 
 	return bits
 }
 
-func (c *ArithmeticAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess.State {
+func (c *HuffmanAdaptiveCompact2Codec) Decode(bits *bitfield.BitField) *chess.State {
 	// Halfmove clock & fullmove number.
 	moveNum := int(bits.ReadInt(21))
 
@@ -168,9 +166,7 @@ func (c *ArithmeticAdaptiveCompact2Coder) Decode(bits *bitfield.BitField) *chess
 	}
 
 	// Piece placement: pieces.
-	l := int(bits.ReadInt(arithmetic.BitsForArithmeticCodeLength))
-	code := bits.ReadBoolSlice(l)
-	pieces := arithmetic.DecodeAdaptive(code, pieceCount, occupancy, c.frequencies, colors, state)
+	pieces := huffman.DecodeAdaptive(func() bool { return bits.ReadBool() }, pieceCount, occupancy, c.frequencies, colors, state)
 
 	// Piece placement.
 	placePieces(&state.Board, occupancy, pieces, colors)

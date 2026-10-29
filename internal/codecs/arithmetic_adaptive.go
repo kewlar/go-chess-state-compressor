@@ -1,51 +1,43 @@
-package coders
+package codecs
 
 import (
+	"example.com/go-chess/internal/arithmetic"
 	"example.com/go-chess/internal/bitfield"
 	"example.com/go-chess/internal/chess"
-	"example.com/go-chess/internal/huffman"
 	"example.com/go-chess/internal/tools"
 )
 
-type HuffmanCoder struct {
-	huffmanTree *huffman.Node
-	huffmanDict map[rune]*huffman.Node
+type ArithmeticAdaptiveCodec struct {
+	frequencies map[rune]int
 }
 
-func NewHuffmanCoder() *HuffmanCoder {
+func NewArithmeticAdaptiveCodec() *ArithmeticAdaptiveCodec {
 	frequencies := map[rune]int{
-		'p': 16,
-		'k': 2,
-		'q': 2,
-		'r': 4,
-		'b': 4,
-		'n': 4,
+		'p': 1600,
+		'k': 200,
+		'q': 200,
+		'r': 400,
+		'b': 400,
+		'n': 400,
 	}
 
-	huffmanTree := huffman.BuildHuffmanTree(frequencies)
-
-	return &HuffmanCoder{
-		huffmanTree: huffmanTree,
-		huffmanDict: huffmanTree.BuildDictionary(),
+	return &ArithmeticAdaptiveCodec{
+		frequencies: frequencies,
 	}
 }
 
-func (c *HuffmanCoder) Name() string {
-	return "Huffman"
+func (c *ArithmeticAdaptiveCodec) Name() string {
+	return "Arithmetic (adaptive)"
 }
 
-func (c *HuffmanCoder) Encode(state *chess.State) *bitfield.BitField {
+func (c *ArithmeticAdaptiveCodec) Encode(state *chess.State) *bitfield.BitField {
 	bits := &bitfield.BitField{}
 
 	// Encode board in separate bitboards for occupancy, color, and a list of pieces
 	occupancy, color, pieces := separateBoardInformation(state.Board)
 
-	// Piece placement.
 	bits.WriteInt(occupancy, 64)
 	bits.WriteInt(uint64(color), len(pieces))
-	for _, piece := range pieces {
-		bits.WriteBoolSlice(c.huffmanDict[rune(piece.Type())].Bits)
-	}
 
 	bits.WriteBool(bool(state.SideToMove))
 	bits.WriteBoolSlice(state.Castling.BoolSlice())
@@ -53,10 +45,15 @@ func (c *HuffmanCoder) Encode(state *chess.State) *bitfield.BitField {
 	bits.WriteInt(uint64(state.Halfmove), 8)
 	bits.WriteInt(uint64(state.Fullmove), 14)
 
+	// Arithmetic coding.
+	code := arithmetic.EncodeAdaptive(piecesToRunes(pieces), bitfield.IntToBoolSlice(occupancy, 64), c.frequencies, bitfield.IntToBoolSlice(uint64(color), len(pieces)), state)
+	bits.WriteInt(uint64(len(code)), arithmetic.BitsForArithmeticCodeLength)
+	bits.WriteBoolSlice(code)
+
 	return bits
 }
 
-func (c *HuffmanCoder) Decode(bits *bitfield.BitField) *chess.State {
+func (c *ArithmeticAdaptiveCodec) Decode(bits *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Piece placement: occupancy.
@@ -66,23 +63,16 @@ func (c *HuffmanCoder) Decode(bits *bitfield.BitField) *chess.State {
 	// Piece placement: colors.
 	colors := bits.ReadBoolSlice(pieceCount)
 
-	// Piece placement: pieces.
-	pieces := make([]rune, 0, pieceCount)
-	for range pieceCount {
-		// Read Huffman code.
-		node := c.huffmanTree
-		for !node.IsLeaf() {
-			bit := bits.ReadBool()
-			node = node.Children[bit]
-		}
-		pieces = append(pieces, node.Value)
-	}
-
 	state.SideToMove = chess.Color(bits.ReadBool())
 	state.Castling = chess.NewCastling(bits.ReadBoolSlice(4))
 	state.EnPassant = chess.Square(bits.ReadInt(7))
 	state.Halfmove = int(bits.ReadInt(8))
 	state.Fullmove = int(bits.ReadInt(14))
+
+	// Piece placement: pieces.
+	l := int(bits.ReadInt(arithmetic.BitsForArithmeticCodeLength))
+	code := bits.ReadBoolSlice(l)
+	pieces := arithmetic.DecodeAdaptive(code, pieceCount, occupancy, c.frequencies, colors, state)
 
 	// Piece placement.
 	placePieces(&state.Board, occupancy, pieces, colors)

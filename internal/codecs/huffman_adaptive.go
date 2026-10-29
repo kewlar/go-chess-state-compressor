@@ -1,4 +1,4 @@
-package coders
+package codecs
 
 import (
 	"example.com/go-chess/internal/bitfield"
@@ -7,11 +7,11 @@ import (
 	"example.com/go-chess/internal/tools"
 )
 
-type HuffmanAdaptiveCoder struct {
+type HuffmanAdaptiveCodec struct {
 	frequencies map[rune]int
 }
 
-func NewHuffmanAdaptiveCoder() *HuffmanAdaptiveCoder {
+func NewHuffmanAdaptiveCodec() *HuffmanAdaptiveCodec {
 	frequencies := map[rune]int{
 		'p': 1600,
 		'k': 200,
@@ -21,16 +21,16 @@ func NewHuffmanAdaptiveCoder() *HuffmanAdaptiveCoder {
 		'n': 400,
 	}
 
-	return &HuffmanAdaptiveCoder{
+	return &HuffmanAdaptiveCodec{
 		frequencies: frequencies,
 	}
 }
 
-func (c *HuffmanAdaptiveCoder) Name() string {
+func (c *HuffmanAdaptiveCodec) Name() string {
 	return "Huffman (adaptive)"
 }
 
-func (c *HuffmanAdaptiveCoder) Encode(state *chess.State) *bitfield.BitField {
+func (c *HuffmanAdaptiveCodec) Encode(state *chess.State) *bitfield.BitField {
 	bits := &bitfield.BitField{}
 
 	bits.WriteBool(bool(state.SideToMove))
@@ -53,7 +53,7 @@ func (c *HuffmanAdaptiveCoder) Encode(state *chess.State) *bitfield.BitField {
 	return bits
 }
 
-func (c *HuffmanAdaptiveCoder) Decode(bits *bitfield.BitField) *chess.State {
+func (c *HuffmanAdaptiveCodec) Decode(bits *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	state.SideToMove = chess.Color(bits.ReadBool())

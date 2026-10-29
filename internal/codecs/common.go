@@ -1,4 +1,4 @@
-package coders
+package codecs
 
 import (
 	"example.com/go-chess/internal/bitfield"

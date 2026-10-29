@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"example.com/go-chess/internal/chess"
-	"example.com/go-chess/internal/coders"
+	"example.com/go-chess/internal/codecs"
 	"example.com/go-chess/internal/reporter"
 )
 
@@ -19,24 +19,24 @@ type BenchResult struct {
 }
 
 func main() {
-	// Configure available coders here.
-	coders := []coders.Coder{
+	// Configure available codecs here.
+	codecs := []codecs.Codec{
 		// Baseline - encode state to FEN.
-		coders.NewFenCoder(),
+		codecs.NewFenCodec(),
 		// Raw metadata; only piece encoding differs.
-		coders.NewBinaryFenCoder(),
-		coders.NewHuffmanCoder(),
-		coders.NewHuffmanAdaptiveCoder(),
-		coders.NewArithmeticCoder(),
-		coders.NewArithmeticByCountCoder(),
-		coders.NewArithmeticAdaptiveCoder(),
+		codecs.NewBinaryFenCodec(),
+		codecs.NewHuffmanCodec(),
+		codecs.NewHuffmanAdaptiveCodec(),
+		codecs.NewArithmeticCodec(),
+		codecs.NewArithmeticByCountCodec(),
+		codecs.NewArithmeticAdaptiveCodec(),
 		// Various tricks being used to compress the data.
-		coders.NewBinaryFenCompactCoder(),
-		coders.NewHuffmanCompactCoder(),
-		coders.NewHuffmanAdaptiveCompactCoder(),
-		coders.NewArithmeticAdaptiveCompactCoder(),
-		coders.NewArithmeticAdaptiveCompact2Coder(),
-		coders.NewHuffmanAdaptiveCompact2Coder(),
+		codecs.NewBinaryFenCompactCodec(),
+		codecs.NewHuffmanCompactCodec(),
+		codecs.NewHuffmanAdaptiveCompactCodec(),
+		codecs.NewArithmeticAdaptiveCompactCodec(),
+		codecs.NewArithmeticAdaptiveCompact2Codec(),
+		codecs.NewHuffmanAdaptiveCompact2Codec(),
 	}
 
 	// Prepare to read input data.
@@ -53,13 +53,13 @@ func main() {
 
 	// Set up statistic and benchmark gatherers.
 	reporters := []*reporter.Reporter{}
-	for range coders {
+	for range codecs {
 		reporters = append(reporters, reporter.NewReporter())
 	}
-	benchmarks := make([]BenchResult, len(coders))
+	benchmarks := make([]BenchResult, len(codecs))
 
-	for idx, coder := range coders {
-		fmt.Printf("Testing %s coder...\n", coder.Name())
+	for idx, codec := range codecs {
+		fmt.Printf("Testing %s codec...\n", codec.Name())
 
 		offset, err := f.Seek(0, 0)
 		if err != nil || offset != 0 {
@@ -83,11 +83,11 @@ func main() {
 			if err != nil {
 				log.Fatalf("An error occurred while parsing FEN \"%s\": %v", fen, err)
 			}
-			bits := coder.Encode(state)
-			recoded := coder.Decode(bits).ToFen()
+			bits := codec.Encode(state)
+			recoded := codec.Decode(bits).ToFen()
 			if fen != recoded {
 				fmt.Printf("Encoded to %s\n", bits.String())
-				log.Fatalf("coding with %s coder failed\n  expected: '%s'\n       got: '%s'", coder.Name(), fen, recoded)
+				log.Fatalf("coding with %s codec failed\n  expected: '%s'\n       got: '%s'", codec.Name(), fen, recoded)
 			}
 			reporters[idx].Log(fen, bits.Length)
 			lines++
@@ -103,16 +103,16 @@ func main() {
 
 	// Report statistics.
 	w := 0
-	for _, coder := range coders {
-		w = max(w, len(coder.Name()))
+	for _, codec := range codecs {
+		w = max(w, len(codec.Name()))
 	}
 	ws := strconv.Itoa(w)
 
-	fmt.Printf("| %-"+ws+"s | %9s | %9s | %9s | %9s | %11s | %s |\n", "Coder", "Min, b", "Mean, b", "Median, b", "Max, b", "Duration, s", "Worst case FEN")
+	fmt.Printf("| %-"+ws+"s | %9s | %9s | %9s | %9s | %11s | %s |\n", "Codec", "Min, b", "Mean, b", "Median, b", "Max, b", "Duration, s", "Worst case FEN")
 	fmt.Println("| :" + strings.Repeat("-", w-1) + strings.Repeat(" | --------:", 4) + " | ----------: | :------------- |")
-	for idx, coder := range coders {
+	for idx, codec := range codecs {
 		reporter := reporters[idx]
 		benchmark := benchmarks[idx]
-		fmt.Printf("| %-"+ws+"s | %9d | %9.5f | %9d | %9d | %11.3f | %s |\n", coder.Name(), reporter.Min, reporter.Mean(), reporter.Median(), reporter.Max, benchmark.Duration.Seconds(), reporter.WorstCase)
+		fmt.Printf("| %-"+ws+"s | %9d | %9.5f | %9d | %9d | %11.3f | %s |\n", codec.Name(), reporter.Min, reporter.Mean(), reporter.Median(), reporter.Max, benchmark.Duration.Seconds(), reporter.WorstCase)
 	}
 }

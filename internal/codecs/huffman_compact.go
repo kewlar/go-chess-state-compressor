@@ -1,4 +1,4 @@
-package coders
+package codecs
 
 import (
 	"example.com/go-chess/internal/bitfield"
@@ -7,12 +7,12 @@ import (
 	"example.com/go-chess/internal/tools"
 )
 
-type HuffmanCompactCoder struct {
+type HuffmanCompactCodec struct {
 	huffmanTree *huffman.Node
 	huffmanDict map[rune]*huffman.Node
 }
 
-func NewHuffmanCompactCoder() *HuffmanCompactCoder {
+func NewHuffmanCompactCodec() *HuffmanCompactCodec {
 	frequencies := map[rune]int{
 		'p': 16,
 		'k': 2,
@@ -24,17 +24,17 @@ func NewHuffmanCompactCoder() *HuffmanCompactCoder {
 
 	huffmanTree := huffman.BuildHuffmanTree(frequencies)
 
-	return &HuffmanCompactCoder{
+	return &HuffmanCompactCodec{
 		huffmanTree: huffmanTree,
 		huffmanDict: huffmanTree.BuildDictionary(),
 	}
 }
 
-func (c *HuffmanCompactCoder) Name() string {
+func (c *HuffmanCompactCodec) Name() string {
 	return "Huffman (compact)"
 }
 
-func (c *HuffmanCompactCoder) Encode(state *chess.State) *bitfield.BitField {
+func (c *HuffmanCompactCodec) Encode(state *chess.State) *bitfield.BitField {
 	// Encode en passant in board configuration
 	board := state.Board
 	if state.EnPassant.IsValid() {
@@ -68,7 +68,7 @@ func (c *HuffmanCompactCoder) Encode(state *chess.State) *bitfield.BitField {
 	return bits
 }
 
-func (c *HuffmanCompactCoder) Decode(bits *bitfield.BitField) *chess.State {
+func (c *HuffmanCompactCodec) Decode(bits *bitfield.BitField) *chess.State {
 	state := chess.NewState()
 
 	// Piece placement: occupancy.
